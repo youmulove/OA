@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.thinkgem.jeesite.modules.oa.dao.OaLeavedDao">
+    
+	<sql id="oaLeavedColumns">
+		a.id AS "id",
+		a.audit_id AS "auditId",
+		a.start_time AS "startTime",
+		a.end_time AS "endTime",
+		a.leave_type AS "leaveType",
+		a.reason AS "reason",
+<!-- 		a.apply_time AS "applyTime", -->
+		a.reality_start_time AS "realityStartTime",
+		a.reality_end_time AS "realityEndTime",
+		a.create_by AS "createBy.id",
+		a.create_date AS "applyTime",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		a.leaved_time AS "leavedTime",
+		a.audit_no AS "auditNo",
+		a.audit_fir_info AS "auditFirInfo",
+		a.audit_sec_info AS "auditSecInfo",
+		a.audit_thr_info AS "auditThrInfo",
+		a.audit_fir_time AS "auditFirTime",
+		a.audit_sec_time AS "auditSecTime",
+		a.audit_thr_time AS "auditThrTime",
+		a.process_instance_id AS "processInstanceId",
+		a.audit_fir_state AS "auditFirState",
+		a.audit_fir_id AS "auditFirId", 
+ 		a.audit_sec_id AS "auditSecId", 
+ 		a.audit_thr_id AS "auditThrId",
+		a.copyto_id AS "copytoId",
+		a.audit_sec_state AS "auditSecState",
+		a.audit_thr_state AS "auditThrState",
+		a.audit_fou_state AS "auditFouState",
+		a.audit_fou_info AS "auditFouInfo",
+		a.audit_fou_time AS "auditFouTime",
+ 		a.audit_fou_id AS "auditFouId",
+		a.startend_time AS "startendTime",
+		a.hours AS "hours",
+		u.name AS "applyName",
+		u.del_flag AS "userDel",
+		a.COMPANY_ID AS "company.id",
+		a.OFFICE_ID AS "office.id",
+		o.name AS "office.name",
+		o.parent_id AS "office.parent.id",
+    	o.parent_ids AS "office.parentIds",
+    	o.del_flag AS "offDel",	
+    	c.name AS "company.name",
+		c.parent_id AS "company.parent.id",
+    	c.parent_ids AS "company.parentIds",
+    	c.del_flag AS "comDel",
+		a.yuliu1 AS "yuliu1",
+		a.yuliu2 AS "yuliu2",
+		a.yuliu3 AS "yuliu3",
+		a.yuliu4 AS "yuliu4",
+		a.yuliu5 AS "yuliu5"
+
+	</sql>
+	
+	<sql id="oaLeavedJoins">
+	LEFT JOIN sys_user u ON a.create_by=u.id
+	LEFT JOIN sys_office c ON c.id = a.COMPANY_ID
+    LEFT JOIN sys_office o ON o.id = a.office_id
+	</sql>
+    
+	<select id="get" resultType="OaLeaved">
+		SELECT 
+			<include refid="oaLeavedColumns"/>
+		FROM oa_leaved a
+		<include refid="oaLeavedJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="findList" resultType="OaLeaved">
+		SELECT 
+			<include refid="oaLeavedColumns"/>
+		FROM oa_leaved a
+		<include refid="oaLeavedJoins"/>
+		where
+			a.del_flag = #{DEL_FLAG_NORMAL} and u.del_flag='0' and o.del_flag='0'
+		 <if test="company != null and company.id != null and company.id != ''">
+			AND (c.id = #{company.id} OR c.parent_ids LIKE 
+					<if test="dbName == 'oracle'">'%,'||#{company.id}||',%')</if>
+					<if test="dbName == 'mssql'">'%,'+#{company.id}+',%')</if>
+					<if test="dbName == 'mysql'">CONCAT('%,', #{company.id}, ',%'))</if>
+		</if>
+		<if test="office != null and office.id != null and office.id != ''">
+			AND (o.id = #{office.id} OR o.parent_ids LIKE 
+					<if test="dbName == 'oracle'">'%,'||#{office.id}||',%')</if>
+					<if test="dbName == 'mssql'">'%,'+#{office.id}+',%')</if>
+					<if test="dbName == 'mysql'">CONCAT('%,', #{office.id}, ',%'))</if>
+		</if> 
+		<if test="startTime !=null and startTime !=''">
+			and a.create_date <![CDATA[  >=  ]]> #{startTime}
+		</if>
+		<if test="endTime !=null and endTime !=''">
+			and a.create_date<![CDATA[   <=  ]]> #{endTime}
+		</if> 
+		<if test="!currentUser.admin">
+			AND a.id != '1'
+		</if>
+		<if test="createBy !=null and createBy !=''">
+			and a.create_by = #{createBy.id}
+		</if>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultType="OaLeaved">
+		SELECT 
+			<include refid="oaLeavedColumns"/>
+		FROM oa_leaved a
+		<include refid="oaLeavedJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO oa_leaved(
+			id,
+			audit_id,
+			start_time,
+			end_time,
+			leave_type,
+			reason,
+			apply_time,
+			reality_start_time,
+			reality_end_time,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag,
+			leaved_time,
+			audit_no,
+			audit_fir_info,
+			audit_sec_info,
+			audit_thr_info,
+			audit_fir_time,
+			audit_sec_time,
+			audit_thr_time,
+			process_instance_id,
+			audit_fir_state,
+			audit_fir_id,
+			audit_sec_id,
+			audit_thr_id,
+			copyto_id,
+			audit_sec_state,
+			audit_thr_state,
+			audit_fou_state,
+			audit_fou_info,
+			audit_fou_time,
+			audit_fou_id,
+			startend_time,
+			COMPANY_ID,
+			OFFICE_ID,
+			yuliu1,
+			yuliu2,
+			yuliu3,
+			yuliu4,
+			yuliu5,
+			hours
+		) VALUES (
+			#{id},
+			#{auditId},
+			#{startTime},
+			#{endTime},
+			#{leaveType},
+			#{reason},
+			#{applyTime},
+			#{realityStartTime},
+			#{realityEndTime},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag},
+			#{leavedTime},
+			#{auditNo},
+			#{auditFirInfo},
+			#{auditSecInfo},
+			#{auditThrInfo},
+			#{auditFirTime},
+			#{auditSecTime},
+			#{auditThrTime},
+			#{processInstanceId},
+			#{auditFirState},
+			#{auditFirId},
+			#{auditSecId},
+			#{auditThrId},
+			#{copytoId},
+			#{auditSecState},
+			#{auditThrState},
+			#{auditFouState},
+			#{auditFouInfo},
+			#{auditFouTime},
+			#{auditFouId},
+			#{startendTime},
+			#{company.id},
+			#{office.id},
+			#{office.parentIds},
+			#{yuliu2},
+			#{yuliu3},
+			#{yuliu4},
+			#{yuliu5},
+			#{hours}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE oa_leaved SET 	
+			audit_id = #{auditId},
+			start_time = #{startTime},
+			end_time = #{endTime},
+			leave_type = #{leaveType},
+			reason = #{reason},
+			apply_time = #{applyTime},
+			reality_start_time = #{realityStartTime},
+			reality_end_time = #{realityEndTime},
+			update_by = #{updateBy.id},
+			update_date = #{updateDate},
+			remarks = #{remarks},
+			leaved_time = #{leavedTime},
+			audit_no = #{auditNo},
+			audit_fir_info = #{auditFirInfo},
+			audit_sec_info = #{auditSecInfo},
+			audit_thr_info = #{auditThrInfo},
+			audit_fir_time = #{auditFirTime},
+			audit_sec_time = #{auditSecTime},
+			audit_thr_time = #{auditThrTime},
+			process_instance_id = #{processInstanceId},
+			audit_fir_state = #{auditFirState},
+			audit_fir_id = #{auditFirId},
+			audit_sec_id = #{auditSecId},
+			audit_thr_id = #{auditThrId},
+			copyto_id = #{copytoId},
+			audit_sec_state = #{auditSecState},
+			audit_thr_state = #{auditThrState},
+			audit_fou_state = #{auditFouState},
+			audit_fou_info = #{auditFouInfo},
+			audit_fou_time = #{auditFouTime},
+			audit_fou_id = #{auditFouId},
+			startend_time = #{startendTime},
+			COMPANY_ID = #{company.id},
+			OFFICE_ID = #{office.id},
+			yuliu1 = #{office.parentIds},
+			yuliu2 = #{yuliu2},
+			yuliu3 = #{yuliu3},
+			yuliu4 = #{yuliu4},
+			yuliu5 = #{yuliu5},
+			hours = #{hours}
+		WHERE id = #{id}
+	</update>
+	
+	<update id="delete">
+		UPDATE oa_leaved SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+</mapper>

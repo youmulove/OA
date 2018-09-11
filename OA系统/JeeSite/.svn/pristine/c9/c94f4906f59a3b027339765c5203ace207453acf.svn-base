@@ -1,0 +1,948 @@
+package com.thinkgem.jeesite.modules.sys.web;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.validation.ConstraintViolationException;
+
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.thinkgem.jeesite.common.beanvalidator.BeanValidators;
+import com.thinkgem.jeesite.common.config.Global;
+import com.thinkgem.jeesite.common.persistence.Page;
+import com.thinkgem.jeesite.common.servlet.ValidateCodeServlet;
+import com.thinkgem.jeesite.common.utils.DateUtils;
+import com.thinkgem.jeesite.common.utils.StringUtils;
+import com.thinkgem.jeesite.common.utils.excel.ExportExcel;
+import com.thinkgem.jeesite.common.utils.excel.ImportExcel;
+import com.thinkgem.jeesite.common.web.BaseController;
+import com.thinkgem.jeesite.modules.sys.entity.Office;
+import com.thinkgem.jeesite.modules.sys.entity.Role;
+import com.thinkgem.jeesite.modules.sys.entity.SysRank;
+import com.thinkgem.jeesite.modules.sys.entity.User;
+import com.thinkgem.jeesite.modules.sys.service.SystemService;
+import com.thinkgem.jeesite.modules.sys.utils.UserUtils;
+
+/**
+ * 用户Controller
+ * 
+ * @author ThinkGem
+ * @version 2013-8-29
+ */
+@Controller
+@RequestMapping(value = "${adminPath}/sys/user")
+public class UserController extends BaseController {
+	private Map<String, String> map = new HashMap<String, String>();
+	@Autowired
+	private SystemService systemService;
+
+	@ModelAttribute
+	public User get(@RequestParam(required = false) String id) {
+		if (StringUtils.isNotBlank(id)) {
+			return systemService.getUser(id);
+		} else {
+			return new User();
+		}
+	}
+
+	@RequiresPermissions("sys:user:view")
+	@RequestMapping(value = { "index" })
+	public String index(User user, Model model) {
+		return "modules/sys/userIndex";
+	}
+
+	@RequiresPermissions("sys:user:v")
+	@RequestMapping(value = { "index1" })
+	public String index1(User user, Model model) {
+		return "modules/sys/userIndex1";
+	}
+
+	@RequiresPermissions("sys:user:view")
+	@RequestMapping(value = { "list", "" })
+	public String list(User user, HttpServletRequest request,
+			HttpServletResponse response, Model model) {
+		Page<User> page = systemService.findWithRoles(new Page<User>(request,
+				response), user);
+		model.addAttribute("page", page);
+		return "modules/sys/userList";
+	}
+
+	/**
+	 * 查询所有用户的角色信息
+	 */
+
+	@RequiresPermissions("sys:user:view")
+	@RequestMapping(value = { "list3", "" })
+	public ModelAndView list3(User user, HttpServletRequest request,
+			HttpServletResponse response) {
+		ModelAndView mv = new ModelAndView();
+		Page<User> page = systemService.findWithRoles(new Page<User>(request,
+				response), user);
+		// model.addAttribute("page", page);
+
+		/*
+		 * List<User> roleList = systemService.findUserRoles();
+		 * 
+		 * Map<String, String> RoleListMap = new HashMap<String, String>();
+		 * Iterator<User> iter = roleList.iterator(); while (iter.hasNext()) {
+		 * User users = iter.next(); RoleListMap.put(users.getId(),
+		 * users.getRoleNames()); }
+		 */
+
+		mv.addObject("page", page); // mv.addObject("RoleLists", RoleListMap);
+		mv.setViewName("modules/sys/userList");
+		return mv;
+	}
+
+	/*
+	 * 查询所有用户的角色信息
+	 */
+	@RequiresPermissions("sys:user:v")
+	@RequestMapping(value = { "list1", "" })
+	public ModelAndView list1(User user, HttpServletRequest request,
+			HttpServletResponse response) {
+		ModelAndView mv = new ModelAndView();
+		Page<User> page = systemService.findWithRoles1(new Page<User>(request,
+				response), user);
+		// model.addAttribute("page", page);
+		// List<User> roleList = systemService.findUserRoles();
+		/*
+		 * Map<String, String> RoleListMap = new HashMap<String, String>();
+		 * Iterator<User> iter = roleList.iterator(); while (iter.hasNext()) {
+		 * User users = iter.next(); RoleListMap.put(users.getId(),
+		 * users.getRoleNames()); }
+		 */
+		mv.addObject("page", page);
+		// mv.addObject("RoleLists", RoleListMap);
+		mv.setViewName("modules/sys/userList1");
+		return mv;
+	}
+
+	@ResponseBody
+	@RequiresPermissions("sys:user:view")
+	@RequestMapping(value = { "listData" })
+	public Page<User> listData(User user, HttpServletRequest request,
+			HttpServletResponse response, Model model) {
+		Page<User> page = systemService.findUser(new Page<User>(request,
+				response), user);
+		return page;
+	}
+
+	@RequiresPermissions("sys:user:view")
+	@RequestMapping(value = "form")
+	public String form(User user, Model model) {
+		if (user.getCompany() == null || user.getCompany().getId() == null) {
+			user.setCompany(UserUtils.getUser().getCompany());
+		}
+		if (user.getOffice() == null || user.getOffice().getId() == null) {
+			user.setOffice(UserUtils.getUser().getOffice());
+		}
+		if (user.getSysrank() == null || user.getSysrank().getId() == null) {
+			user.setSysrank(UserUtils.getUser().getSysrank());
+		}
+		model.addAttribute("user", user);
+		model.addAttribute("allRoles", systemService.findAllRole());
+		return "modules/sys/userForm";
+	}
+
+	@RequiresPermissions("sys:user:edit")
+	@RequestMapping(value = "save")
+	public String save(User user, HttpServletRequest request, Model model,
+			RedirectAttributes redirectAttributes) {
+		if (Global.isDemoMode()) {
+			addMessage(redirectAttributes, "演示模式，不允许操作！");
+			return "redirect:" + adminPath + "/sys/user/list?repage";
+		}
+		// 修正引用赋值问题，不知道为何，Company和Office引用的一个实例地址，修改了一个，另外一个跟着修改。
+		user.setCompany(new Office(request.getParameter("company.id")));
+		user.setOffice(new Office(request.getParameter("office.id")));
+		user.setSysrank(new SysRank(request.getParameter("sysrank.id")));
+		// 如果新密码为空，则不更换密码
+		if (StringUtils.isNotBlank(user.getNewPassword())) {
+			user.setPassword(SystemService.entryptPassword(user
+					.getNewPassword()));
+		}
+		if (!beanValidator(model, user)) {
+			return form(user, model);
+		}
+		if (!"true".equals(checkLoginName(user.getOldLoginName(),
+				user.getLoginName()))) {
+			addMessage(model, "保存用户'" + user.getLoginName() + "'失败，登录名已存在");
+			return form(user, model);
+		}
+		// 角色数据有效性验证，过滤不在授权内的角色
+		List<Role> roleList = Lists.newArrayList();
+		List<String> roleIdList = user.getRoleIdList();
+		// List<Role> findAllRole = systemService.findAllRole();
+		/*
+		 * for (Role role : findAllRole) { String roleId = role.getId(); if
+		 * (role.getRoleType().equals("user")) roleIdList.add(roleId); }
+		 */
+
+		for (Role r : systemService.findAllRole()) {
+			if (roleIdList.contains(r.getId())) {
+				roleList.add(r);
+			}
+		}
+		user.setRoleList(roleList);
+		// 保存用户信息
+		systemService.saveUser(user);
+		// 清除当前用户缓存
+		if (user.getLoginName().equals(UserUtils.getUser().getLoginName())) {
+			// 清除用户缓存
+			UserUtils.clearCache(user);
+		}
+		addMessage(redirectAttributes, "保存用户'" + user.getLoginName() + "'成功");
+		return "redirect:" + adminPath + "/sys/user/list?repage";
+	}
+
+	@RequiresPermissions("sys:user:edit")
+	@RequestMapping(value = "delete")
+	public String delete(User user, RedirectAttributes redirectAttributes) {
+		if (Global.isDemoMode()) {
+			addMessage(redirectAttributes, "演示模式，不允许操作！");
+			return "redirect:" + adminPath + "/sys/user/list?repage";
+		}
+		if (UserUtils.getUser().getId().equals(user.getId())) {
+			addMessage(redirectAttributes, "删除用户失败, 不允许删除当前用户");
+		} else if (User.isAdmin(user.getId())) {
+			addMessage(redirectAttributes, "删除用户失败, 不允许删除超级管理员用户");
+		} else {
+			systemService.deleteUser(user);
+			// 清除用户缓存
+			UserUtils.clearCache(user);
+			addMessage(redirectAttributes, "删除用户成功");
+		}
+		return "redirect:" + adminPath + "/sys/user/list?repage";
+	}
+
+	/**
+	 * 导出用户数据
+	 * 
+	 * @param user
+	 * @param request
+	 * @param response
+	 * @param redirectAttributes
+	 * @return
+	 */
+	@RequiresPermissions("sys:user:e")
+	@RequestMapping(value = "export", method = RequestMethod.POST)
+	public String exportFile(User user, HttpServletRequest request,
+			HttpServletResponse response, RedirectAttributes redirectAttributes) {
+		try {
+			String fileName = "员工通讯录" + DateUtils.getDate("yyyyMMddHHmmss")
+					+ ".xlsx";
+			// Page<User> page = systemService.findUser(new Page<User>(request,
+			// response, -1), user);
+			Page<User> page = systemService.findWithRoles2(new Page<User>(
+					request, response, -1), user);
+			new ExportExcel("员工通讯录", User.class).setDataList(page.getList())
+					.write(response, fileName).dispose();
+			return null;
+		} catch (Exception e) {
+			addMessage(redirectAttributes, "导出用户失败！失败信息：" + e.getMessage());
+		}
+		return "redirect:" + adminPath + "/sys/user/list?repage";
+	}
+
+	/**
+	 * 导入用户数据
+	 * 
+	 * @param file
+	 * @param redirectAttributes
+	 * @return
+	 */
+	@RequiresPermissions("sys:user:i")
+	@RequestMapping(value = "import", method = RequestMethod.POST)
+	public String importFile(MultipartFile file,
+			RedirectAttributes redirectAttributes) {
+		if (Global.isDemoMode()) {
+			addMessage(redirectAttributes, "演示模式，不允许操作！");
+			return "redirect:" + adminPath + "/sys/user/list?repage";
+		}
+		try {
+			int successNum = 0;
+			int failureNum = 0;
+			StringBuilder failureMsg = new StringBuilder();
+			ImportExcel ei = new ImportExcel(file, 1, 0);
+			List<User> list = ei.getDataList(User.class);
+			for (User user : list) {
+				try {
+					if ("true".equals(checkLoginName("", user.getLoginName()))) {
+						user.setPassword(SystemService
+								.entryptPassword("123456"));
+						BeanValidators.validateWithException(validator, user);
+						user.setUserType("普通用户");
+						systemService.saveUser(user);
+						successNum++;
+					} else {
+						failureMsg.append("<br/>手机号 " + user.getLoginName()
+								+ " 已存在; ");
+						failureNum++;
+					}
+				} catch (ConstraintViolationException ex) {
+					failureMsg.append("<br/>手机号 " + user.getLoginName()
+							+ " 导入失败：");
+					List<String> messageList = BeanValidators
+							.extractPropertyAndMessageAsList(ex, ": ");
+					for (String message : messageList) {
+						failureMsg.append(message + "; ");
+						failureNum++;
+					}
+				} catch (Exception ex) {
+					failureMsg.append("<br/>手机 " + user.getLoginName()
+							+ " 导入失败：" + ex.getMessage());
+				}
+			}
+			if (failureNum > 0) {
+				failureMsg.insert(0, "，失败 " + failureNum + " 条用户，导入信息如下：");
+			}
+			addMessage(redirectAttributes, "已成功导入 " + successNum + " 条用户"
+					+ failureMsg);
+		} catch (Exception e) {
+			addMessage(redirectAttributes, "导入用户失败！失败信息：" + e.getMessage());
+		}
+		return "redirect:" + adminPath + "/sys/user/list?repage";
+	}
+
+	/**
+	 * 下载导入用户数据模板
+	 * 
+	 * @param response
+	 * @param redirectAttributes
+	 * @return
+	 */
+	@RequiresPermissions("sys:user:view")
+	@RequestMapping(value = "import/template")
+	public String importFileTemplate(HttpServletResponse response,
+			HttpServletRequest request, RedirectAttributes redirectAttributes) {
+		try {
+			String fileName = request.getSession().getServletContext()
+					.getRealPath("/WEB-INF/file")
+					+ "/通讯录导入模板.xlsx";
+			// 获取输入流
+			File file = new File(fileName);
+			if (file != null) {
+				InputStream bis = new BufferedInputStream(new FileInputStream(
+						file));
+				String filename = "通讯录导入模板.xlsx";
+				filename = URLEncoder.encode(filename, "UTF-8");
+				response.addHeader("Content-Disposition",
+						"attachment;filename=" + filename);
+				response.setContentType("multipart/form-data");
+				BufferedOutputStream out = new BufferedOutputStream(
+						response.getOutputStream());
+				int len = 0;
+				while ((len = bis.read()) != -1) {
+					out.write(len);
+					out.flush();
+				}
+				out.close();
+				return null;
+			}
+		} catch (Exception e) {
+			addMessage(redirectAttributes, "导入模板下载失败！失败信息：" + e.getMessage());
+		}
+		return "redirect:" + adminPath + "/sys/user/list?repage";
+	}
+
+	/**
+	 * 验证登录名是否有效
+	 * 
+	 * @param oldLoginName
+	 * @param loginName
+	 * @return
+	 */
+	@ResponseBody
+	@RequiresPermissions("sys:user:edit")
+	@RequestMapping(value = "checkLoginName")
+	public String checkLoginName(String oldLoginName, String loginName) {
+		if (loginName != null && loginName.equals(oldLoginName)) {
+			return "true";
+		} else if (loginName != null
+				&& systemService.getUserByLoginName(loginName) == null) {
+			return "true";
+		}
+		return "false";
+	}
+
+	/**
+	 * 用户信息显示及保存
+	 * 
+	 * @param user
+	 * @param model
+	 * @return
+	 */
+	@RequiresPermissions("user")
+	@RequestMapping(value = "info")
+	public String info(User user, HttpServletResponse response, Model model) {
+		User currentUser = UserUtils.getUser();
+		if (StringUtils.isNotBlank(user.getName())) {
+			if (Global.isDemoMode()) {
+				model.addAttribute("message", "演示模式，不允许操作！");
+				return "modules/sys/userInfo";
+			}
+			currentUser.setName(user.getName());
+			currentUser.setLoginName(user.getLoginName());
+			currentUser.setNo(user.getNo());
+			currentUser.setEmail(user.getEmail());
+			currentUser.setMobile(user.getMobile());
+			currentUser.setRemarks(user.getRemarks());
+			currentUser.setPhoto(user.getPhoto());
+			systemService.updateUserInfo(currentUser);
+			// 清除用户缓存
+			UserUtils.clearCache(user);
+			model.addAttribute("message", "保存用户信息成功");
+		}
+		model.addAttribute("user", currentUser);
+		model.addAttribute("Global", new Global());
+		return "modules/sys/userInfo";
+	}
+
+	/**
+	 * 返回用户信息
+	 * 
+	 * @return
+	 */
+	@RequiresPermissions("user")
+	@ResponseBody
+	@RequestMapping(value = "infoData")
+	public User infoData() {
+		return UserUtils.getUser();
+	}
+
+	/**
+	 * 修改个人用户密码
+	 * 
+	 * @param oldPassword
+	 * @param newPassword
+	 * @param model
+	 * @return
+	 */
+	@RequiresPermissions("user")
+	@RequestMapping(value = "modifyPwd")
+	public String modifyPwd(String oldPassword, String newPassword,
+			String confirmNewPassword, Model model) {
+		User user = UserUtils.getUser();
+		String re = "^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{6,20}$";
+		if (StringUtils.isNotBlank(oldPassword)
+				&& StringUtils.isNotBlank(newPassword)) {
+			if (Global.isDemoMode()) {
+				model.addAttribute("message", "演示模式，不允许操作！");
+				return "modules/sys/userModifyPwd";
+			}
+			if (newPassword.length() < 6 || confirmNewPassword.length() < 6) {
+				model.addAttribute("message", "修改密码失败，新密码位数应不少于六位！");
+				return "modules/sys/userModifyPwd";
+			}
+			if (!newPassword.matches(re) || !confirmNewPassword.matches(re)) {
+				model.addAttribute("message", "修改密码失败，新密码需由数字和字母组成且不能大于20位！");
+				return "modules/sys/userModifyPwd";
+			}
+			if (newPassword.length() >= 6
+					&& confirmNewPassword.length() >= 6
+					&& newPassword.matches(re)
+					&& confirmNewPassword.matches(re)
+					&& SystemService.validatePassword(oldPassword,
+							user.getPassword())) {
+				systemService.updatePasswordById(user.getId(),
+						user.getLoginName(), newPassword);
+				// 清除用户缓存
+				UserUtils.clearCache(user);
+				model.addAttribute("message", "修改密码成功");
+			} else {
+				model.addAttribute("message", "修改密码失败，旧密码错误");
+			}
+		}
+		model.addAttribute("user", user);
+		return "modules/sys/userModifyPwd";
+	}
+
+	/**
+	 * 发送短信验证码
+	 * 
+	 * @param newPhone
+	 * @param model
+	 * @return
+	 * @throws UnsupportedEncodingException
+	 */
+	@RequiresPermissions("user")
+	@RequestMapping(value = "sendSms")
+	@ResponseBody
+	public JsonResult sendSms(HttpServletRequest request, String newPhone,
+			Model model) throws UnsupportedEncodingException {
+		User user = UserUtils.getUser();
+		String oldPhone = user.getLoginName();
+		User getUser = systemService.getUserByLoginName(newPhone);
+		String message = null;
+		String flag = "1";// 0:成功，1：失败
+		model.addAttribute("newPhone", newPhone);
+		String regex = "^((13[0-9])|(14[0-9])|(15[^4,\\D])|(17[0-9])|(18[0,0-9]))\\d{8}";
+		if (StringUtils.isBlank(newPhone)) {
+			message = "手机号不能为空!";
+		} else if (oldPhone.equals(newPhone)) {
+			message = "新手机号不能与旧手机号相同!";
+		} else if (getUser != null) {
+			message = "用户已存在，请重新输入!";
+		} else if (StringUtils.isNotBlank(newPhone) && !newPhone.matches(regex)) {
+			message = "手机格式输入不正确!";
+		} else {
+			Long code1 = Math.round(Math.random() * 1000000);
+			flag = "0";
+			message = "短信发送成功，请注意查收!";
+			String code2 = code1 + "";
+			String code = code2.replaceAll(" ", "");
+			URLEncoder.encode(code, "utf-8");
+			SmsApi.SmsCodeSend(newPhone, code);
+			System.out.println(code);
+			request.getSession().setAttribute(newPhone, code);
+		}
+		return new JsonResult(flag, message, null);
+
+	}
+
+	/**
+	 * 用户手机号修改后退出
+	 */
+	@RequiresPermissions("user")
+	@RequestMapping(value = "userLoginOut")
+	public String logout1(HttpServletRequest request,
+			HttpServletResponse response, Model model) {
+		UserUtils.getSubject().logout();
+		model.addAttribute("modifyPhone", "modifyPhone");
+		return "modules/sys/sysLogin";
+
+	}
+
+	/**
+	 * 手机号进行修改
+	 * 
+	 * @param newPhone
+	 * @param verifycode
+	 * @param validateCode
+	 * @param request
+	 * @param model
+	 * @return
+	 */
+	@RequiresPermissions("user")
+	@RequestMapping(value = "modifyPhoneSave")
+	@ResponseBody
+	public JsonResult modifyPhoneSave(String newPhone, String verifycode,
+			HttpServletRequest request, HttpServletResponse response) {
+		// ValidateCodeServlet.validate(request, validateCode);
+		User user = UserUtils.getUser();
+		String message = null;
+		String flag = "1";// 0:成功，1：失败
+		if (user != null) {
+			if (StringUtils.isBlank(newPhone)) {
+				message = "手机号为空，请重新输入！";
+				return new JsonResult(flag, message, null);
+			}
+			if (StringUtils.isBlank(verifycode)) {
+				message = "验证码为空，请重新输入！";
+				return new JsonResult(flag, message, null);
+			}
+			String regex = "^((13[0-9])|(14[0-9])|(15[^4,\\D])|(17[0-9])|(18[0,0-9]))\\d{8}";
+			if (!newPhone.matches(regex)) {
+				message = "手机格式输入不正确，请重新输入！";
+				return new JsonResult(flag, message, null);
+			}
+			User getUser = systemService.getUserByLoginName(newPhone);
+			if (getUser != null) {
+				message = "用户已存在，请重新输入！";
+				return new JsonResult(flag, message, null);
+			}
+			if (newPhone.equals(user.getLoginName())) {
+				message = "手机号与原先一样，请重新输入！";
+				return new JsonResult(flag, message, null);
+			}
+
+			if (Global.isDemoMode()) {
+				message = "演示模式，不允许操作！";
+				return new JsonResult(flag, message, null);
+			}
+			if (!verifycode.equals(request.getSession().getAttribute(newPhone))) {
+				message = "验证码输入错误，请重新输入！";
+				return new JsonResult(flag, message, null);
+			} else {
+				systemService.updatePhoneById(user.getId(), newPhone);
+				UserUtils.clearCache(user);
+				message = "修改手机号成功";
+				flag = "0";
+				return new JsonResult(flag, message, null);
+			}
+		}
+		return new JsonResult(flag, message, null);
+
+	}
+
+	/**
+	 * 修改个人手机号
+	 * 
+	 * @param phone
+	 * @param model
+	 * @return
+	 */
+	@RequiresPermissions("user")
+	@RequestMapping(value = "modifyPhone")
+	public String modifyPhone(String newPhone, String verifycode,
+			String validateCode, HttpServletRequest request, Model model) {
+		// ValidateCodeServlet.validate(request, validateCode);
+		User user = UserUtils.getUser();
+		model.addAttribute("newPhone", newPhone);
+		String modifyPhone = request.getParameter("modifyPhone");
+		if (StringUtils.isNotBlank(modifyPhone) && user != null) {
+			if (StringUtils.isBlank(modifyPhone)) {
+				model.addAttribute("message", "手机号为空，请重新输入！");
+				return "modules/sys/userModifyPhone";
+			}
+			if (StringUtils.isBlank(validateCode)) {
+				model.addAttribute("message", "验证码为空，请重新输入！");
+				return "modules/sys/userModifyPhone";
+			}
+			String regex = "^((13[0-9])|(14[0-9])|(15[^4,\\D])|(17[0-9])|(18[0,0-9]))\\d{8}";
+			if (!newPhone.matches(regex)) {
+				model.addAttribute("message", "手机格式输入不正确，请重新输入！");
+				return "modules/sys/userModifyPhone";
+			}
+			User getUser = systemService.getUserByLoginName(newPhone);
+			if (getUser != null) {
+				model.addAttribute("message", "用户已存在，请重新输入！");
+				return "modules/sys/userModifyPhone";
+			}
+			if (newPhone.equals(user.getLoginName())) {
+				model.addAttribute("message", "手机号与原先一样，请重新输入！");
+				return "modules/sys/userModifyPhone";
+			}
+
+			if (Global.isDemoMode()) {
+				model.addAttribute("message", "演示模式，不允许操作！");
+				return "modules/sys/userModifyPhone";
+			}
+			if (!verifycode.equals(request.getSession().getAttribute(newPhone))) {
+				model.addAttribute("message", "验证码输入错误");
+			} else {
+				/*
+				 * List<ApprovalRule> findAllApprovalRules = approvalRuleService
+				 * .findAllApprovalRules(); for (ApprovalRule approvalRule :
+				 * findAllApprovalRules) { String[] str =
+				 * approvalRule.getApprovalPerson().split(","); for (int i = 0;
+				 * i < str.length; i++) { if
+				 * (str[i].equals(user.getLoginName())) { str[i] = newPhone; } }
+				 * approvalRule.setApprovalPerson(str.toString());
+				 * approvalRuleService.updateApproval(approvalRule); }
+				 */
+				systemService.updatePhoneById(user.getId(), newPhone);
+				// 清除用户缓存
+				UserUtils.clearCache(user);
+				model.addAttribute("message", "修改手机号成功");
+			}
+		}
+		model.addAttribute("verifycode", verifycode);
+		model.addAttribute("user", user);
+		return "modules/sys/userModifyPhone";
+	}
+
+	/**
+	 * 图片验证码
+	 */
+	@RequiresPermissions("user")
+	@ResponseBody
+	@RequestMapping(value = "checkCode")
+	public String checkCode(HttpServletRequest request, String validateCode) {
+		String a = ValidateCodeServlet.validate(request, validateCode) ? "true"
+				: "false";
+		System.out.println(a);
+		return a;
+
+	}
+
+	/**
+	 * 修改手机号和邮箱之前校验密码
+	 */
+	@RequiresPermissions("user")
+	@ResponseBody
+	@RequestMapping(value = "checkPwd")
+	public boolean checkPwd(HttpServletRequest request, String pwd) {
+		User user = UserUtils.getUser();
+		String password = user.getPassword();
+		@SuppressWarnings("static-access")
+		boolean validatePassword = systemService
+				.validatePassword(pwd, password) ? true : false;
+		System.out.println(validatePassword);
+		return validatePassword;
+
+	}
+
+	/**
+	 * 发送邮箱验证码
+	 * 
+	 * @param email
+	 * @param model
+	 * @return
+	 */
+	@RequiresPermissions("user")
+	@RequestMapping(value = "sendMail")
+	@ResponseBody
+	public JsonResult sendMail(HttpServletRequest request, String email) {
+		User user = UserUtils.getUser();
+		String message = null;
+		String flag = "1";// 0:成功，1：失败
+		String regex = "^([a-z0-9A-Z]+[-|\\.]?)+[a-z0-9A-Z]@([a-z0-9A-Z]+(-[a-z0-9A-Z]+)?\\.)+[a-zA-Z]{2,}$";
+		if (StringUtils.isBlank(email)) {
+			message = "邮箱地址不能为空!";
+			return new JsonResult(flag, message, null);
+		}
+		if (email.equals(user.getEmail())) {
+			message = "新邮箱不能与旧邮箱相同!";
+			return new JsonResult(flag, message, null);
+		}
+		if (StringUtils.isNotBlank(email) && !email.matches(regex)) {
+			message = "邮箱地址格式输入不正确!";
+			return new JsonResult(flag, message, null);
+		}
+		User userEmail = systemService.getUserByEmail(email);
+		if (userEmail != null) {
+			message = "邮箱已被占用，请重新输入!";
+			return new JsonResult(flag, message, null);
+		} else {
+			Long code1 = Math.round(Math.random() * 1000000);
+			String code2 = code1 + "";
+			String mailcode = code2.replaceAll(" ", "");
+			MailUtils.send(email, mailcode);
+			message = "邮箱验证码发送成功，请注意查收!";
+			flag = "0";
+			request.getSession().setAttribute(user.getLoginName(), code1);
+			return new JsonResult(flag, message, null);
+		}
+	}
+
+	/**
+	 * 修改个人邮箱
+	 * 
+	 * @return
+	 */
+	@RequiresPermissions("user")
+	@RequestMapping(value = "modifyEmail")
+	public String modifyEmail(String email, String verifycode,
+			String loginName, Model model) {
+		User user = UserUtils.getUser();
+		if (StringUtils.isNotBlank(email)) {
+			if (Global.isDemoMode()) {
+				model.addAttribute("message", "演示模式，不允许操作！");
+				return "modules/sys/userModifyEmail";
+			}
+			if (!verifycode.equals(map.get("mailcode"))) {
+				model.addAttribute("message", "验证码输入错误");
+			}
+			if (verifycode.equals(map.get("mailcode"))) {
+				systemService.updateEmailById(user.getId(), loginName, email);
+				// 清除用户缓存
+				UserUtils.clearCache(user);
+				model.addAttribute("message", "修改邮箱成功");
+			} else {
+				model.addAttribute("message", "修改邮箱失败");
+			}
+		}
+		model.addAttribute("email", email);
+		model.addAttribute("user", user);
+		return "modules/sys/userModifyEmail";
+	}
+
+	/**
+	 * 修改个人邮箱
+	 * 
+	 * @return
+	 */
+	@RequiresPermissions("user")
+	@ResponseBody
+	@RequestMapping(value = "modifyEmailSave")
+	public JsonResult modifyEmailSave(HttpServletRequest request, String email,
+			String verifycode) {
+		User user = UserUtils.getUser();
+		String message = null;
+		String flag = "1";// 0:成功，1：失败
+		String regex = "^([a-z0-9A-Z]+[-|\\.]?)+[a-z0-9A-Z]@([a-z0-9A-Z]+(-[a-z0-9A-Z]+)?\\.)+[a-zA-Z]{2,}$";
+		if (StringUtils.isBlank(email)) {
+			message = "邮箱地址不能为空，请重新输入!";
+			return new JsonResult(flag, message, null);
+		}
+		if (StringUtils.isBlank(verifycode)) {
+			message = "验证码不能为空，请重新输入!";
+			return new JsonResult(flag, message, null);
+		}
+		if (email.equals(user.getEmail())) {
+			message = "新邮箱不能与旧邮箱相同，请重新输入!";
+			return new JsonResult(flag, message, null);
+		}
+		if (StringUtils.isNotBlank(email) && !email.matches(regex)) {
+			message = "邮箱地址格式输入不正确，请重新输入!";
+			return new JsonResult(flag, message, null);
+		}
+		User userEmail = systemService.getUserByEmail(email);
+		if (userEmail != null) {
+			message = "邮箱已被占用，请重新输入!";
+			return new JsonResult(flag, message, null);
+		}
+		String getEmailCode = ""
+				+ request.getSession().getAttribute(user.getLoginName());
+		if (!verifycode.equals(getEmailCode)) {
+			message = "验证码输入错误，请重新输入！";
+			return new JsonResult(flag, message, null);
+		} else if (verifycode.equals(getEmailCode)) {
+			systemService.updateEmailById(user.getId(), null, email);
+			flag = "0";
+			message = "修改邮箱成功";
+			return new JsonResult(flag, message, null);
+		} else {
+			message = "修改邮箱失败";
+			return new JsonResult(flag, message, null);
+		}
+	}
+
+	@RequiresPermissions("user")
+	@ResponseBody
+	@RequestMapping(value = "treeData")
+	public List<Map<String, Object>> treeData(
+			@RequestParam(required = false) String officeId,
+			HttpServletResponse response) {
+		List<Map<String, Object>> mapList = Lists.newArrayList();
+		List<User> list = systemService.findUserByOfficeId(officeId);
+		for (int i = 0; i < list.size(); i++) {
+			User e = list.get(i);
+			Map<String, Object> map = Maps.newHashMap();
+			map.put("id", "u_" + e.getId());
+			map.put("pId", officeId);
+			map.put("name", StringUtils.replace(e.getName(), " ", ""));
+			mapList.add(map);
+		}
+		return mapList;
+	}
+
+	@RequiresPermissions("user")
+	@ResponseBody
+	@RequestMapping(value = "useData")
+	public List<Map<String, Object>> useData(
+			@RequestParam(required = false) String sysrankId,
+			HttpServletResponse response) {
+		List<Map<String, Object>> mapList = Lists.newArrayList();
+		List<User> list = systemService.findUserBysystrankId(sysrankId);
+		for (int i = 0; i < list.size(); i++) {
+			User u = list.get(i);
+			Map<String, Object> map = Maps.newHashMap();
+			map.put("id", u.getId());
+			map.put("pId", sysrankId);
+			map.put("name", StringUtils.replace(u.getName(), " ", ""));
+			map.put("loginName", u.getLoginName());
+			mapList.add(map);
+		}
+		return mapList;
+	}
+
+	@RequiresPermissions("user")
+	@ResponseBody
+	@RequestMapping(value = "loginState")
+	public String loginState() {
+		User user = UserUtils.getUser();
+		String loginState = user.getLoginState();
+		if (loginState == null || "".equals(loginState)) {
+			return "0";
+		}
+		return loginState;
+	}
+
+	/**
+	 * 修改个人用户密码
+	 * 
+	 * @param oldPassword
+	 * @param newPassword
+	 * @param model
+	 * @return
+	 */
+	@RequiresPermissions("user")
+	@RequestMapping(value = "modifyPwd1")
+	public String modifyPwd1(String oldPassword, String newPassword,
+			String confirmNewPassword, Model model) {
+		User user = UserUtils.getUser();
+		String re = "^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{6,20}$";
+		if (StringUtils.isNotBlank(oldPassword)
+				&& StringUtils.isNotBlank(newPassword)) {
+			if (Global.isDemoMode()) {
+				model.addAttribute("message", "演示模式，不允许操作！");
+				return "modules/sys/userModifyPwd1";
+			}
+			if (newPassword.length() < 6 || confirmNewPassword.length() < 6) {
+				model.addAttribute("message", "修改密码失败，新密码位数应不少于六位！");
+				return "modules/sys/userModifyPwd1";
+			}
+			if (!newPassword.matches(re) || !confirmNewPassword.matches(re)) {
+				model.addAttribute("message", "修改密码失败，新密码需由数字和字母组成且不能大于20位！");
+				return "modules/sys/userModifyPwd1";
+			}
+			if (newPassword.length() >= 6
+					&& confirmNewPassword.length() >= 6
+					&& newPassword.matches(re)
+					&& confirmNewPassword.matches(re)
+					&& SystemService.validatePassword(oldPassword,
+							user.getPassword())) {
+				systemService.updatePasswordById(user.getId(),
+						user.getLoginName(), newPassword);
+				// 清除用户缓存
+				UserUtils.clearCache(user);
+				model.addAttribute("message", "修改密码成功");
+				return "modules/sys/userModifyPwd1";
+			} else {
+				model.addAttribute("message", "修改密码失败，旧密码错误");
+				return "modules/sys/userModifyPwd1";
+			}
+		}
+		model.addAttribute("user", user);
+		return "modules/sys/userModifyPwd1";
+	}
+}
+// @InitBinder
+// public void initBinder(WebDataBinder b) {
+// b.registerCustomEditor(List.class, "roleList", new
+// PropertyEditorSupport(){
+// @Autowired
+// private SystemService systemService;
+// @Override
+// public void setAsText(String text) throws IllegalArgumentException {
+// String[] ids = StringUtils.split(text, ",");
+// List<Role> roles = new ArrayList<Role>();
+// for (String id : ids) {
+// Role role = systemService.getRole(Long.valueOf(id));
+// roles.add(role);
+// }
+// setValue(roles);
+// }
+// @Override
+// public String getAsText() {
+// return Collections3.extractToString((List) getValue(), "id", ",");
+// }
+// });
+// }
+

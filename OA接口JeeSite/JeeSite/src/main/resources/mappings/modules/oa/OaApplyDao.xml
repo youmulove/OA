@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.thinkgem.jeesite.modules.oa.dao.OaApplyDao">
+    
+	<sql id="oaApplyColumns">
+		a.id AS "id",
+		a.image AS "image",
+		a.detail AS "detail",
+		a.content AS "content",
+		a.files AS "files",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		a.start_time AS "startTime",
+		a.end_time AS "endTime",
+		a.reason AS "reason",
+		a.apply_time AS "applyTime",
+		a.reality_start_time AS "realityStartTime",
+		a.reality_end_time AS "realityEndTime",
+		a.audit_fir_info AS "auditFirInfo",
+		a.audit_sec_info AS "auditSecInfo",
+		a.audit_thr_info AS "auditThrInfo",
+		a.audit_fir_time AS "auditFirTime",
+		a.audit_sec_time AS "auditSecTime",
+		a.audit_thr_time AS "auditThrTime",
+		a.process_instance_id AS "processInstanceId",
+		a.audit_fir_state AS "auditFirState",
+		a.audit_fir_id AS "auditFirId",
+		a.audit_sec_id AS "auditSecId",
+		a.audit_thr_id AS "auditThrId",
+		a.copyto_id AS "copytoId",
+		a.audit_sec_state AS "auditSecState",
+		a.audit_thr_state AS "auditThrState",
+		a.audit_fou_state AS "auditFouState",
+		a.audit_fou_info AS "auditFouInfo",
+		a.audit_fou_time AS "auditFouTime",
+		a.yuliu1 AS "yuliu1",
+		a.yuliu2 AS "yuliu2",
+		a.yuliu3 AS "yuliu3",
+		a.yuliu4 AS "yuliu4",
+		a.yuliu5 AS "yuliu5",
+		a.audit_fou_id AS "auditFouId",
+		a.startend_time AS "startendTime",
+		a.company_id AS "companyId",
+		a.office_room_name AS "officeRoomName",
+		a.office_id AS "office.id",
+		a.apply_item AS "applyItem",
+		a.SELECT_CHAPTERS AS "selectChapters",
+		a.STAMP_FILES AS "stampFiles",
+		a.CHAPTERS_NUMBER AS "chaptersNumber",
+		u.del_flag AS "userDel",
+		u.name AS "applyName",
+		o.name AS "office.name",
+		o.parent_id AS "office.parent.id",
+    	o.parent_ids AS "office.parentIds",
+    	o.del_flag AS "offDel",	
+		c.name AS "company.name",
+		c.parent_id AS "company.parent.id",
+    	c.parent_ids AS "company.parentIds",
+    	c.del_flag AS "comDel"
+		
+	</sql>
+	
+	<sql id="oaApplyJoins">
+		LEFT JOIN sys_user u ON a.create_by=u.id
+	    LEFT JOIN sys_office c ON c.id = a.company_id
+        LEFT JOIN sys_office o ON o.id = a.office_id
+	</sql>
+    
+	<select id="get" resultType="OaApply">
+		SELECT 
+			<include refid="oaApplyColumns"/>
+		FROM oa_apply a
+		<include refid="oaApplyJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="findList" resultType="OaApply">
+		SELECT 
+			<include refid="oaApplyColumns"/>
+		FROM oa_apply a
+		<include refid="oaApplyJoins"/>
+		WHERE
+			a.del_flag = #{DEL_FLAG_NORMAL} and u.del_flag='0' and o.del_flag='0'
+			<if test="company != null and company.id != null and company.id != ''">
+			AND (c.id = #{company.id} OR c.parent_ids LIKE 
+					<if test="dbName == 'oracle'">'%,'||#{company.id}||',%')</if>
+					<if test="dbName == 'mssql'">'%,'+#{company.id}+',%')</if>
+					<if test="dbName == 'mysql'">CONCAT('%,', #{company.id}, ',%'))</if>
+		</if>
+		<if test="office != null and office.id != null and office.id != ''">
+			AND (o.id = #{office.id} OR o.parent_ids LIKE 
+					<if test="dbName == 'oracle'">'%,'||#{office.id}||',%')</if>
+					<if test="dbName == 'mssql'">'%,'+#{office.id}+',%')</if>
+					<if test="dbName == 'mysql'">CONCAT('%,', #{office.id}, ',%'))</if>
+		</if> 
+		<if test="createBy !=null and createBy !=''">
+			and a.create_by = #{createBy.id}
+		</if>
+	
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultType="OaApply">
+		SELECT 
+			<include refid="oaApplyColumns"/>
+		FROM oa_apply a
+		<include refid="oaApplyJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO oa_apply(
+			id,
+			image,
+			detail,
+			content,
+			files,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag,
+			start_time,
+			end_time,
+			reason,
+			apply_time,
+			reality_start_time,
+			reality_end_time,
+			audit_fir_info,
+			audit_sec_info,
+			audit_thr_info,
+			audit_fir_time,
+			audit_sec_time,
+			audit_thr_time,
+			process_instance_id,
+			audit_fir_state,
+			audit_fir_id,
+			audit_sec_id,
+			audit_thr_id,
+			copyto_id,
+			audit_sec_state,
+			audit_thr_state,
+			audit_fou_state,
+			audit_fou_info,
+			audit_fou_time,
+			yuliu1,
+			yuliu2,
+			yuliu3,
+			yuliu4,
+			yuliu5,
+			audit_fou_id,
+			startend_time,
+			company_id,
+			office_room_name,
+			office_id,
+			apply_item,
+			SELECT_CHAPTERS,
+			STAMP_FILES,
+			CHAPTERS_NUMBER
+		) VALUES (
+			#{id},
+			#{image},
+			#{detail},
+			#{content},
+			#{files},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag},
+			#{startTime},
+			#{endTime},
+			#{reason},
+			#{applyTime},
+			#{realityStartTime},
+			#{realityEndTime},
+			#{auditFirInfo},
+			#{auditSecInfo},
+			#{auditThrInfo},
+			#{auditFirTime},
+			#{auditSecTime},
+			#{auditThrTime},
+			#{processInstanceId},
+			#{auditFirState},
+			#{auditFirId},
+			#{auditSecId},
+			#{auditThrId},
+			#{copytoId},
+			#{auditSecState},
+			#{auditThrState},
+			#{auditFouState},
+			#{auditFouInfo},
+			#{auditFouTime},
+			#{office.parentIds},
+			#{yuliu2},
+			#{yuliu3},
+			#{yuliu4},
+			#{yuliu5},
+			#{auditFouId},
+			#{startendTime},
+			#{company.id},
+			#{officeRoomName},
+			#{office.id},
+			#{applyItem},
+			#{selectChapters},
+			#{stampFiles},
+			#{chaptersNumber}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE oa_apply SET 	
+			image = #{image},
+			detail = #{detail},
+			content = #{content},
+			files = #{files},
+			update_by = #{updateBy.id},
+			update_date = #{updateDate},
+			remarks = #{remarks},
+			start_time = #{startTime},
+			end_time = #{endTime},
+			reason = #{reason},
+			apply_time = #{applyTime},
+			reality_start_time = #{realityStartTime},
+			reality_end_time = #{realityEndTime},
+			audit_fir_info = #{auditFirInfo},
+			audit_sec_info = #{auditSecInfo},
+			audit_thr_info = #{auditThrInfo},
+			audit_fir_time = #{auditFirTime},
+			audit_sec_time = #{auditSecTime},
+			audit_thr_time = #{auditThrTime},
+			process_instance_id = #{processInstanceId},
+			audit_fir_state = #{auditFirState},
+			audit_fir_id = #{auditFirId},
+			audit_sec_id = #{auditSecId},
+			audit_thr_id = #{auditThrId},
+			copyto_id = #{copytoId},
+			audit_sec_state = #{auditSecState},
+			audit_thr_state = #{auditThrState},
+			audit_fou_state = #{auditFouState},
+			audit_fou_info = #{auditFouInfo},
+			audit_fou_time = #{auditFouTime},
+			yuliu1 = #{office.parentIds},
+			yuliu2 = #{yuliu2},
+			yuliu3 = #{yuliu3},
+			yuliu4 = #{yuliu4},
+			yuliu5 = #{yuliu5},
+			audit_fou_id = #{auditFouId},
+			startend_time = #{startendTime},
+			company_id = #{company.id},
+			office_room_name = #{officeRoomName},
+			office_id = #{office.id},
+			apply_item = #{applyItem},
+			SELECT_CHAPTERS=#{selectChapters},
+			STAMP_FILES=#{stampFiles},
+			CHAPTERS_NUMBER=#{chaptersNumber}
+		WHERE id = #{id}
+	</update>
+	
+	<update id="delete">
+		UPDATE oa_apply SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+</mapper>

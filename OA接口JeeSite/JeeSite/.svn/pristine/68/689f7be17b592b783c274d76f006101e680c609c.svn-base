@@ -1,0 +1,797 @@
+<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ include file="/WEB-INF/views/include/taglib.jsp"%>
+<html>
+<head>
+	<!-- 首页外框架 -->
+	<title>${fns:getConfig('productName')}</title>
+	<meta name="decorator" content="blank"/><c:set var="tabmode" value="${empty cookie.tabmode.value ? '0' : cookie.tabmode.value}"/>
+    <c:if test="${tabmode eq '1'}"><link rel="Stylesheet" href="${ctxStatic}/jerichotab/css/jquery.jerichotab.css" />
+    <script type="text/javascript" src="${ctxStatic}/jerichotab/js/jquery.jerichotab.js"></script></c:if>
+	<script src="${ctxStatic}/layer-v2.3/layer/layer.js" type="text/javascript"></script>
+	<style type="text/css">
+		#main {overflow:hidden; padding:0;margin:0;} #main .container-fluid{/* padding:0 4px 0 6px; *//* 2017-09-25  新加 */ padding:0; background:url("${ctxStatic}/newImage/background1.jpg") no-repeat;background-size:cover;}
+		#header {height:55px;/* margin:0 0 8px; */position:static;} /* #header li {font-size:14px;_font-size:12px;} */
+		#header .brand {float:left; font-family:Helvetica, Georgia, Arial, sans-serif, 黑体;font-size:26px;padding-left:33px;}
+		#footer {margin:8px 0 0 0;padding:3px 0 0 0;font-size:11px;text-align:center;border-top:2px solid #0663A2;}
+		#footer, #footer a {color:#999;} #left{overflow-x:hidden;overflow-y:auto;} #left .collapse{position:static;}
+		#userControl>li>a{/*color:#fff;*/text-shadow:none;} #userControl>li>a:hover, #user #userControl>li.open>a{background:transparent;}
+		/* 新添加的类名以 “c-” 开头 */
+		#right{
+			height:100%;
+		}
+		#openClose{
+			height:100%;
+		}
+		.c-content{
+			height:-moz-calc(100% - 40px);
+			height:-webkit-calc(100% - 40px);
+			height:calc(100% - 40px);
+			width:92%;
+			margin:8px auto 8px;
+			padding:12px 25px 12px 25px;
+			background-color:rgba(245,245,245,.7);
+			border-radius:4px;
+		}
+		/* 头部导航样式重写 */
+		#header{
+			line-height:55px;
+		}
+		#header li{
+			list-style:none;
+			font-size:15px;
+			cursor:pointer;
+		}
+		#header a{
+			display:inline-block;
+			text-decoration:none;
+			color:#333;
+		}
+		.c-brand{
+			float:left;
+			margin-right:30px;
+			font-size:16px;
+		}
+		.c-brand>img{
+			width:40px;
+			height:40px;
+			margin-right:4px;
+		}
+		#userControl>li{
+			float:left;
+			height:55px;
+			padding:0 10px;
+			line-height:55px;
+			text-align:center;
+		}
+		.c-nav{
+			float:left;
+		}
+		.c-nav>ul>li{
+			float:left;
+			width:94px;
+			height:52px;
+			line-height:55px;
+			text-align:center;
+			border-bottom:3px solid transparent;
+		}
+		.c-nav>ul>li:hover{
+			border-color:#2fa4e7;
+		}
+		.c-nav>ul>li.active{
+			border-color:#2fa4e7;
+		}
+		#userControl .c-msg{
+			position:relative;
+			/* min-width:100px; */
+			padding:0 10px;
+			width:20px;
+		}
+		.c-msg>ul{
+			position:absolute;
+			left:0;
+			/* width:-moz-calc(100% - 20px);
+			width:-webkit-calc(100% - 20px);
+			width:calc(100% - 20px); */
+			width:100px;
+			padding:0 10px;
+			background-color:#fff;
+			text-align:center;
+			overflow:hidden;
+		}
+		.c-msg li{
+			height:25px;
+			line-height:25px;
+		}
+		.c-left{
+			height:100%;
+		}
+		/* 右上角消息，信箱提醒消息数样式修改 */
+		.notifyNum{
+			position:absolute;
+			top:5px;
+			left:20px;
+		}
+		/* 左侧导航背景颜色调整 */
+		.c-left .accordion-group{
+			background-color:rgba(255,255,255,.8);
+		}
+	</style>
+	<script type="text/javascript">
+		$(document).ready(function() {
+			// <c:if test="${tabmode eq '1'}"> 初始化页签
+			$.fn.initJerichoTab({
+                renderTo: '#right', uniqueId: 'jerichotab',
+                contentCss: { 'height': $('#right').height() - tabTitleHeight },
+                tabs: [], loadOnce: true, tabWidth: 110, titleHeight: tabTitleHeight
+            });//</c:if>
+			// 绑定菜单单击事件
+			$("#menu a.menu").click(function(){
+				// 一级菜单焦点
+				$("#menu li.menu").removeClass("active");
+				$(this).parent().addClass("active");
+				// 左侧区域隐藏
+				if ($(this).attr("target") == "mainFrame"){
+					$("#left,#openClose").hide();
+					wSizeWidth();
+					// <c:if test="${tabmode eq '1'}"> 隐藏页签
+					$(".jericho_tab").hide();
+					$("#mainFrame").show();//</c:if>
+					return true;
+				}
+				// 左侧区域显示
+				$("#left,#openClose").show();
+				if(!$("#openClose").hasClass("close")){
+					$("#openClose").click();
+				}
+				// 显示二级菜单
+				var menuId = "#menu-" + $(this).attr("data-id");
+				if ($(menuId).length > 0){
+					$("#left .accordion").hide();
+					$(menuId).show();
+					// 初始化点击第一个二级菜单
+					if (!$(menuId + " .accordion-body:first").hasClass('in')){
+						$(menuId + " .accordion-heading:first a").click();
+					}
+					if (!$(menuId + " .accordion-body li:first ul:first").is(":visible")){
+						$(menuId + " .accordion-body a:first i").click();
+					}
+					// 初始化点击第一个三级菜单
+					$(menuId + " .accordion-body li:first li:first a:first i").click();
+				}else{
+					// 获取二级菜单数据
+					$.get($(this).attr("data-href"), function(data){
+						if (data.indexOf("id=\"loginForm\"") != -1){
+							alert('未登录或登录超时。请重新登录，谢谢！');
+							top.location = "${ctx}";
+							return false;
+						}
+						$("#left .accordion").hide();
+						$("#left").append(data);//将数据放入左侧边栏
+						// 链接去掉虚框
+						$(menuId + " a").bind("focus",function() {
+							if(this.blur) {this.blur()};
+						});
+						// 二级标题
+						$(menuId + " .accordion-heading a").click(function(){
+							$(menuId + " .accordion-toggle i").removeClass('icon-chevron-down').addClass('icon-chevron-right');
+							if(!$($(this).attr('data-href')).hasClass('in')){
+								$(this).children("i").removeClass('icon-chevron-right').addClass('icon-chevron-down');
+							}
+						});
+						// 二级内容
+						$(menuId + " .accordion-body a").click(function(){
+							$(menuId + " li").removeClass("active");
+							$(menuId + " li i").removeClass("icon-white");
+							$(this).parent().addClass("active");
+							$(this).children("i").addClass("icon-white");
+						});
+						// 展现三级
+						$(menuId + " .accordion-inner a").click(function(){
+							var href = $(this).attr("data-href");
+							if($(href).length > 0){
+								$(href).toggle().parent().toggle();
+								return false;
+							}
+							// <c:if test="${tabmode eq '1'}"> 打开显示页签
+							return addTab($(this)); // </c:if>
+						});
+						// 默认选中第一个菜单
+						$(menuId + " .accordion-body a:first i").click();
+						$(menuId + " .accordion-body li:first li:first a:first i").click();
+					});
+				}
+				// 大小宽度调整
+				wSizeWidth();
+				return false;
+			});
+			// 初始化点击第一个一级菜单
+			$("#menu a.menu:first span").click();
+			// <c:if test="${tabmode eq '1'}"> 下拉菜单以选项卡方式打开
+			$("#userInfo .dropdown-menu a").mouseup(function(){
+				return addTab($(this), true);
+			});// </c:if>
+			// 鼠标移动到边界自动弹出左侧菜单
+			$("#openClose").mouseover(function(){
+				if($(this).hasClass("open")){
+					$(this).click();
+				}
+			});
+			<%--// 获取通知数目  <c:set var="oaNotifyRemindInterval" value="${fns:getConfig('oa.notify.remind.interval')}"/>
+			var aa = 0,bb = 0,cc = 0,dd = 0,ee = 0;
+			function getNotifyNum(){
+				$.get("${ctx}/oa/oaNotify/self/count?updateSession=0&t="+new Date().getTime(),function(data){
+					var num = parseFloat(data);
+					aa = num;
+					if (num > 0){
+						$("#notifyNum1").show();
+						$("#notifyNum2").show().html("("+num+")");
+						getNotigyNumAll();
+					}else{
+						$("#notifyNum1").hide();
+					}
+				});
+			}
+			getNotifyNum(); //<c:if test="${oaNotifyRemindInterval ne '' && oaNotifyRemindInterval ne '0'}">
+			setInterval(getNotifyNum,${oaNotifyRemindInterval}); //</c:if>
+      //获取预约会议数目
+			function getNotifyMeetingNum(){
+				$.get("${ctx}/oa/oaNotifyMeeting/self/count?updateSession=0&t="+new Date().getTime(),function(data){
+					var num = parseFloat(data);
+					bb = num;
+					if (num > 0){
+						$("#notifyMeetingNum2").show();
+						$("#notifyMeetingNum2").show().html("("+num+")");
+						getNotigyNumAll();
+					}else{
+						$("#notifyMeetingNum1").hide();
+					}
+				});
+			}
+			getNotifyMeetingNum(); //<c:if test="${oaNotifyRemindInterval ne '' && oaNotifyRemindInterval ne '0'}">
+			setInterval(getNotifyMeetingNum,${oaNotifyRemindInterval}/*  ${oaNotifyMeetingRemindInterval} */); //</c:if>
+		
+		
+		//获取任务数目
+			function getNotifyTaskNum(){
+				$.get("${ctx}/oa/oaNotifyTask/self/count?updateSession=0&t="+new Date().getTime(),function(data){
+					var num = parseFloat(data);
+					cc = num;
+					if (num > 0){
+						$("#notifyTaskNum1").show()
+						$("#notifyTaskNum2").show().html("("+num+")");
+						getNotigyNumAll();
+					}else{
+						$("#notifyTaskNum1").hide();
+					}
+				});	
+			}
+			getNotifyTaskNum(); //<c:if test="${oaNotifyRemindInterval ne '' && oaNotifyRemindInterval ne '0'}">
+			setInterval(getNotifyTaskNum,${oaNotifyRemindInterval}/*  ${oaNotifyTaskRemindInterval} */); //</c:if>
+		//获取公告数目
+			function getNoticeNum(){
+				$.get("${ctx}/oa/oaNotice/self/count?updateSession=0&t="+new Date().getTime(),function(data){
+					var num = parseFloat(data);
+					dd = num;
+					if (num > 0){
+						$("#noticeNum1").show();
+						$("#noticeNum2").show().html("("+num+")");
+						getNotigyNumAll();
+					}else{
+						$("#noticeNum1").hide();
+					}
+				});	
+			}
+			getNoticeNum(); //<c:if test="${oaNotifyRemindInterval ne '' && oaNotifyRemindInterval ne '0'}">
+			setInterval(getNoticeNum,60000/*  ${oaNotifyTaskRemindInterval} */); //</c:if>
+		//获取待我审批数目
+			function getTaskNum(){
+				$.get("${ctx}/act/task/self/count?updateSession=0&t="+new Date().getTime(),function(data){
+					var num = parseFloat(data);
+					ee = num;
+					if (num > 0){
+						$("#taskNum1").show();
+						$("#taskNum2").show().html("("+num+")");
+						getNotigyNumAll();
+					}else{
+						$("#taskNum1").hide();
+					}
+				});	
+			}
+			getTaskNum(); //<c:if test="${oaNotifyRemindInterval ne '' && oaNotifyRemindInterval ne '0'}">
+			setInterval(getTaskNum,60000/*  ${oaNotifyTaskRemindInterval} */); //</c:if>--%>
+			
+			/* 总通知数目 */
+			function getNotigyNumAll(){
+				var aa = 0,bb = 0,cc = 0,dd = 0,ee = 0;
+				var ay = null,by = null,cy = null,dy = null,ey = null;
+				// 获取通知数目
+				$.ajax({
+					url:"${ctx}/oa/oaNotify/self/count?updateSession=0&t="+new Date().getTime(),
+					data:null,
+					dataType:"text",
+					type:"get",
+					async: false, 
+					success:function(data){
+						var num = parseFloat(data);
+						aa = num;
+						ay = 1;
+						if (num > 0){
+							$("#notifyNum1").show();
+							$("#notifyNum2").show().html("("+num+")");
+						}else{
+							$("#notifyNum1").hide();
+						}
+					}
+				});
+				//获取预约会议数目
+				$.ajax({
+					url:"${ctx}/oa/oaNotifyMeeting/self/count?updateSession=0&t="+new Date().getTime(),
+					data:null,
+					dataType:"text",
+					type:"get",
+					async: false, 
+					success:function(data){
+						var num = parseFloat(data);
+						bb = num;
+						by = 1;
+						if (num > 0){
+							$("#notifyMeetingNum2").show();
+							$("#notifyMeetingNum2").show().html("("+num+")");
+						}else{
+							$("#notifyMeetingNum1").hide();
+						}
+					}
+				});
+				//获取任务数目
+				$.ajax({
+					url:"${ctx}/oa/oaNotifyTask/self/count?updateSession=0&t="+new Date().getTime(),
+					data:null,
+					dataType:"text",
+					type:"get",
+					async: false, 
+					success:function(data){
+						var num = parseFloat(data);
+						cc = num;
+						cy = 1;
+						if (num > 0){
+							$("#notifyTaskNum1").show()
+							$("#notifyTaskNum2").show().html("("+num+")");
+						}else{
+							$("#notifyTaskNum1").hide();
+						}
+					}
+				});
+				//获取公告数目
+				$.ajax({
+					url:"${ctx}/oa/oaNotice/self/count?updateSession=0&t="+new Date().getTime(),
+					data:null,
+					dataType:"text",
+					type:"get",
+					async: false, 
+					success:function(data){
+						var num = parseFloat(data);
+						dd = num;
+						dy = 1;
+						if (num > 0){
+							$("#noticeNum1").show();
+							$("#noticeNum2").show().html("("+num+")");
+						}else{
+							$("#noticeNum1").hide();
+						}
+					}
+				});
+				//获取待我审批数目
+				$.ajax({
+					url:"${ctx}/act/task/self/count?updateSession=0&t="+new Date().getTime(),
+					data:null,
+					dataType:"text",
+					type:"get",
+					async: false, 
+					success:function(data){
+						var num = parseFloat(data);
+						ee = num;
+						ey = 1;
+						if (num > 0){
+							$("#taskNum1").show();
+							$("#taskNum2").show().html("("+num+")");
+						}else{
+							$("#taskNum1").hide();
+						}
+					}
+				});
+				/* format转时间函数 */
+				Date.prototype.format = function(fmt) { 
+				     var o = { 
+				        "M+" : this.getMonth()+1,                 //月份 
+				        "d+" : this.getDate(),                    //日 
+				        "h+" : this.getHours(),                   //小时 
+				        "m+" : this.getMinutes(),                 //分 
+				        "s+" : this.getSeconds(),                 //秒 
+				        "q+" : Math.floor((this.getMonth()+3)/3), //季度 
+				        "S"  : this.getMilliseconds()             //毫秒 
+				    }; 
+				    if(/(y+)/.test(fmt)) {
+				            fmt=fmt.replace(RegExp.$1, (this.getFullYear()+"").substr(4 - RegExp.$1.length)); 
+				    }
+				     for(var k in o) {
+				        if(new RegExp("("+ k +")").test(fmt)){
+				             fmt = fmt.replace(RegExp.$1, (RegExp.$1.length==1) ? (o[k]) : (("00"+ o[k]).substr((""+ o[k]).length)));
+				         }
+				     }
+				    return fmt; 
+				}    
+				/* 添加一个定时器，用来监听上面ajax的执行是否完成 ，若ajax全部完成则显示总消息数*/
+				var outTimer = setInterval(function(){
+					if(ay == 1 && by == 1 && cy == 1 && dy == 1 && ey == 1 && (aa+bb+cc+dd+ee) > 0){
+						//console.log(ay,by,cy,dy,ey);
+						$("#notifyNum").show().html(aa+bb+cc+dd+ee);
+						ay = null,by = null,cy = null,dy = null,ey = null;
+						//console.log(ay,by,cy,dy,ey);
+						clearInterval(outTimer);
+					}else{
+						$("#notifyNum").hide();
+					}
+				},300);
+			/* 我的通知  桌面通知 */
+				(function(){
+					var ay = null,by = null,cy = null,dy = null;
+					/* 如果没有该参数则说明是第一次调用，就跳出不执行ajax */
+					if(sessionStorage.getItem('pushTime') == undefined){sessionStorage.setItem('pushTime',new Date().getTime()); return false;}
+					$.ajax({
+						url:"${ctx}/oa/oaNotify/notifyList",
+						data:{"time":sessionStorage.getItem('pushTime')},
+						dataType:"json",
+						type:"post",
+						success:function(data){
+							//console.log(data);
+							/* console.log(data.list[0].title);
+							console.log(data.list.length); */
+							ay = 1;
+							for(var i = 0;i < data.list.length;i++){
+								var oUrl = "/jeesite/a/oa/oaNotify/view?id="+data.list[i].id;
+								desktopPush("我的通知",data.list[i].title,new Date(data.list[i].updateDate).format("yyyy-MM-dd hh:mm:ss"),oUrl,ay+by+cy+dy);
+							}	
+						}
+					});
+					/* 预约会议桌面 */
+					$.ajax({
+						url:"${ctx}/oa/oaNotifyMeeting/oaNotifyMeetingList",
+						data:{"time":sessionStorage.getItem('pushTime')},
+						dataType:"json",
+						type:"post",
+						success:function(data){
+							by = 1;
+							for(var i = 0;i < data.list.length;i++){
+								var oUrl = "/jeesite/a/oa/oaNotifyMeeting/form?id="+data.list[i].id;
+								desktopPush("我的会议",data.list[i].title,new Date(data.list[i].updateDate).format("yyyy-MM-dd hh:mm:ss"),oUrl,ay+by+cy+dy);
+							}	
+						}
+					});	
+					/* 任务桌面 */
+					$.ajax({
+						url:"${ctx}/oa/oaNotifyTask/oaNotifyTaskList",
+						data:{"time":sessionStorage.getItem('pushTime')},
+						dataType:"json",
+						type:"post",
+						success:function(data){
+							console.log(data);
+							cy = 1;
+							for(var i = 0;i < data.list.length;i++){
+								var oUrl = "/jeesite/a/oa/oaNotifyTask/form?id="+data.list[i].id;
+								desktopPush("我的任务",data.list[i].title,new Date(data.list[i].updateDate).format("yyyy-MM-dd hh:mm:ss"),oUrl,ay+by+cy+dy);
+							}	
+						}
+					});			
+					/* 公告桌面 */
+					$.ajax({
+						url:"${ctx}/oa/oaNotice/oaNoticeList",
+						data:{"time":sessionStorage.getItem('pushTime')},
+						dataType:"json",
+						type:"post",
+						success:function(data){
+							dy = 1;
+							for(var i = 0;i < data.list.length;i++){
+								var oUrl = "/jeesite/a/oa/oaNotice/view?id="+data.list[i].id&"isSelf="+self;
+								desktopPush("公告",data.list[i].title,new Date(data.list[i].updateDate).format("yyyy-MM-dd hh:mm:ss"),oUrl,ay+by+cy+dy);
+							}	
+						}
+					});
+					/* 待我审批桌面 */
+					$.ajax({
+						url:"${ctx}/act/task/self/count?updateSession=0&t="+new Date().getTime(),
+						data:null,
+						dataType:"json",
+						type:"get",
+						success:function(data){
+							if(data > 0){
+								var oUrl = "/jeesite/a/act/task/todo";
+								desktopPush("待我审批","有"+data+"条审批待处理","",oUrl,null);
+							}
+						}
+					});
+				})();
+				
+				/* 桌面通知调用 */
+				function desktopPush(title,body,time,oUrl,aAllNum){
+					Push.create(title, {
+						body: body+`
+              `+time,
+					/* 	icon: 'icon.png', */
+						data:null,
+						timeout: 12000,
+						vibrate: [100, 100, 100],
+						onClick: function() {
+							$("#mainFrame").attr("src",oUrl);	
+						}
+					});
+					if(aAllNum == 4){
+						sessionStorage.setItem('pushTime',new Date().getTime());
+						var ay = null,by = null,cy = null,dy = null;
+					}
+				}
+			}
+			getNotigyNumAll(); 
+			setInterval(getNotigyNumAll,60000/*  ${oaNotifyTaskRemindInterval} */);
+		});
+		
+	/* 	function getNotifyMeetingNum(){
+			$.get("${ctx}/oa/oaNotifyMeeting/self/count?updateSession=0&t="+new Date().getTime(),function(data){
+				var num = parseFloat(data);
+				if (num > 0){
+					$("#notifyMeetingNum,#notifyMeetingNum3").show().html("("+num+")");
+				}else{
+					$("#notifyMeetingNum,#notifyMeetingNum3").hide()
+				}
+			});
+		}
+		getNotifyMeetingNum(); //<c:if test="${oaNotifyRemindInterval ne '' && oaNotifyRemindInterval ne '0'}">
+		setInterval(getNotifyMeetingNum, ${oaNotifyRemindInterval}); //</c:if>
+		}); */
+		// <c:if test="${tabmode eq '1'}"> 添加一个页签
+		function addTab($this, refresh){
+			$(".jericho_tab").show();
+			$("#mainFrame").hide();
+			$.fn.jerichoTab.addTab({
+                tabFirer: $this,
+                title: $this.text(),
+                closeable: true,
+                data: {
+                    dataType: 'iframe',
+                    dataLink: $this.attr('href')
+                }
+            }).loadData(refresh);
+			return false;
+		}// </c:if>
+		
+		/* 导航栏左侧消息提醒，鼠标进入事件 */
+		$(function(){
+			$(".j-msg").on({
+				mouseenter:function(){
+					/* console.log($(this));
+					console.log($(this).children("ul")); */
+					$(this).children("ul").show();
+				},
+				mouseleave:function(){
+					/* console.log($(this)); */
+					$(this).children("ul").hide();
+				}
+			});
+			$("html").css("overflowY","hidden");
+		});
+	</script>
+</head>
+<body>
+	<div id="main">
+		<div id="header">
+			<div class="clearfix" style="width:1350px; margin:0 auto;">
+				<div class="c-brand">
+					<img src="${remarks}" alt="" style="width:110px;height:40px">
+					<span id="productName">${fns:getConfig('productName')}</span>
+				</div>
+				<ul id="userControl" class="pull-right" style="margin:0;">
+					<li><a href="${pageContext.request.contextPath}${fns:getFrontPath()}/index-${fnc:getCurrentSiteId()}.html" target="_blank" title="访问网站主页"><i class="icon-home"></i></a></li>
+					<%-- <li id="themeSwitch" class="dropdown">
+						<a class="dropdown-toggle" data-toggle="dropdown" href="#" title="主题切换"><i class="icon-th-large"></i></a>
+						<ul class="dropdown-menu">
+							<c:forEach items="${fns:getDictList('theme')}" var="dict"><li><a href="#" onclick="location='${pageContext.request.contextPath}/theme/${dict.value}?url='+location.href">${dict.label}</a></li></c:forEach>
+							<li><a href="javascript:cookie('tabmode','${tabmode eq '1' ? '0' : '1'}');location=location.href">${tabmode eq '1' ? '关闭' : '开启'}页签模式</a></li>
+						</ul>
+						<!--[if lte IE 6]><script type="text/javascript">$('#themeSwitch').hide();</script><![endif]-->
+					</li> --%>
+					<!-- 消息提醒，小铃铛 -->
+					<li class="j-msg c-msg">
+						<a href="javascript:;" title="消息提醒"><i class="icon icon-bell"></i><span id="notifyNum" class="notifyNum label label-info hide">11</span></a>
+						<ul style="display:none;margin:0;text-align:left;">
+							<%-- <li><a href="${ctx}/sys/user/info" target="mainFrame"><i class="icon-user"></i>&nbsp; 个人信息</a></li>
+							<li><a href="${ctx}/sys/user/modifyPwd" target="mainFrame"><i class="icon-lock"></i>&nbsp;  修改密码</a></li> --%>
+							<li id="notifyNum1"><a href="${ctx}/oa/oaNotify/self" target="mainFrame">我的通知 <span id="notifyNum2" class="label label-info hide"></span></a></li>
+							<li id="notifyMeetingNum1"><a href="${ctx}/oa/oaNotifyMeeting/self" target="mainFrame">我的会议 <span id="notifyMeetingNum2" class="label label-info hide"></span></a></li>
+							<li id="notifyTaskNum1"><a href="${ctx}/oa/oaNotifyTask/self" target="mainFrame">我的任务 <span id="notifyTaskNum2" class="label label-info hide"></span></a></li>
+						    <li id="noticeNum1"><a href="${ctx}/oa/oaNotice/self" target="mainFrame">我的公告 <span id="noticeNum2" class="label label-info hide"></span></a></li>
+						    <li id="taskNum1"><a href="${ctx}/act/task/todo" target="mainFrame">待我审批 <span id="taskNum2" class="label label-info hide"></span></a></li>
+						</ul>
+					</li>
+						<!-- 信箱消息，开始 -->
+					<li class="dropdown">
+                            <a class="dropdown-toggle count-info" data-toggle="dropdown" href="#">
+                                 	<!-- <i class="fa fa-envelope"></i> -->
+                                 	<i class="icon icon-envelope"></i>
+                                <c:if test="${noReadCount==0}">
+                                <span class="label label-warning"></span>
+                             </c:if>
+                             <c:if test="${noReadCount>=1}">
+                                <span class="label label-warning">${noReadCount}</span>
+                             </c:if>
+                            </a>
+                            <ul class="dropdown-menu dropdown-messages">
+                            	 <c:forEach items="${mailPage.list}" var="mailBox">
+	                                <li class="m-t-xs">
+	                                    <div class="dropdown-messages-box">
+	                                   
+	                                      <%--   <a  href="#" onclick='top.openTab("${ctx}/iim/contact/index?name=${mailBox.sender.name }","通讯录", false)' class="pull-left" target="mainFrame">
+	                                            <img alt="image" class="img-circle" src="${mailBox.sender.photo }">
+	                                        </a> --%>
+	                                        <div class="media-body">
+	                                            <small class="pull-right">${fns:getTime(mailBox.sendtime)}前</small>
+	                                            <strong>${mailBox.sender.name }</strong>
+	                                            <a class="J_menuItem" href="${ctx}/iim/mailBox/detail?id=${mailBox.id}" target="mainFrame"> ${fns:abbr(mailBox.mail.title,50)}</a>
+	                                            <br>
+	                                            <a class="J_menuItem" href="${ctx}/iim/mailBox/detail?id=${mailBox.id}" target="mainFrame">
+	                                             ${mailBox.mail.overview}
+	                                            </a>
+	                                            <br>
+	                                            <small class="text-muted">
+	                                            <fmt:formatDate value="${mailBox.sendtime}" pattern="yyyy-MM-dd HH:mm:ss"/></small>
+	                                        </div>
+	                                    </div>
+	                                </li>
+	                                <li class="divider"></li>
+                                </c:forEach>
+                                <li>
+                                    <div class="text-center link-block">
+                                        <a class="J_menuItem" href="${ctx}/iim/mailBox/list?orderBy=sendtime desc" target="mainFrame">
+                                            <i class="fa fa-envelope"></i> <strong> 查看所有邮件</strong>
+                                        </a>
+                                    </div>
+                                </li>
+                            </ul>
+                        </li>
+					<!-- 信箱消息， 结束-->
+					<!-- 显示用户名 -->
+					<li id="userInfo">
+						<a class="" data-toggle="" href="${ctx}/sys/user/info" target="mainFrame" title="个人信息">您好, ${fns:getUser().name}</a>
+						<%-- <ul class="">
+							<li><a href="${ctx}/sys/user/info" target="mainFrame"><i class="icon-user"></i>&nbsp; 个人信息</a></li>
+							<li><a href="${ctx}/sys/user/modifyPwd" target="mainFrame"><i class="icon-lock"></i>&nbsp;  修改密码</a></li>
+							<li><a href="${ctx}/oa/oaNotify/self" target="mainFrame"><i class="icon-bell"></i>&nbsp;  我的通知 <span id="notifyNum2" class="label label-info hide"></span></a></li>
+							<li><a href="${ctx}/oa/oaNotifyMeeting/self" target="mainFrame"><i class="icon-bell"></i>&nbsp;  我的会议 <span id="notifyMeetingNum2" class="label label-info hide"></span></a></li>
+							<li><a href="${ctx}/oa/oaNotifyTask/self" target="mainFrame"><i class="icon-bell"></i>&nbsp; 我的任务 <span id="notifyTaskNum3" class="label label-info hide"></span></a></li>
+						</ul> --%>
+					</li>
+					<li><a href="${ctx}/logout1" title="退出登录">退出</a></li>
+					<li>&nbsp;</li>
+				</ul>
+				<%-- <c:if test="${cookie.theme.value eq 'cerulean'}">
+					<div id="user" style="position:absolute;top:0;right:0;"></div>
+					<div id="logo" style="background:url(${ctxStatic}/images/logo_bg.jpg) right repeat-x;width:100%;">
+						<div style="background:url(${ctxStatic}/images/logo.jpg) left no-repeat;width:100%;height:70px;"></div>
+					</div>
+					<script type="text/javascript">
+						$("#productName").hide();$("#user").html($("#userControl"));$("#header").prepend($("#user, #logo"));
+					</script>
+				</c:if> --%>
+				<div class="nav-collapse c-nav j-nav">
+					<ul id="menu" class="clearfix" style="margin:0; white-space:nowrap;float:none;">
+						<c:set var="firstMenu" value="true"/>
+						<c:forEach items="${fns:getMenuList()}" var="menu" varStatus="idxStatus">
+							<c:if test="${menu.parent.id eq '1'&&menu.isShow eq '1'}">
+								<li class="menu ${not empty firstMenu && firstMenu ? ' active' : ''}">
+									<c:if test="${empty menu.href}">
+										<a class="menu" href="javascript:" data-href="${ctx}/sys/menu/tree?parentId=${menu.id}" data-id="${menu.id}"><span>${menu.name}</span></a>
+									</c:if>
+									<c:if test="${not empty menu.href}">
+										<a class="menu" href="${fn:indexOf(menu.href, '://') eq -1 ? ctx : ''}${menu.href}" data-id="${menu.id}" target="mainFrame"><span>${menu.name}</span></a>
+									</c:if>
+								</li>
+								<c:if test="${firstMenu}">
+									<c:set var="firstMenuId" value="${menu.id}"/>
+								</c:if>
+								<c:set var="firstMenu" value="false"/>
+							</c:if>
+						</c:forEach><%--
+						<shiro:hasPermission name="cms:site:select">
+						<li class="dropdown">
+							<a class="dropdown-toggle" data-toggle="dropdown" href="#">${fnc:getSite(fnc:getCurrentSiteId()).name}<b class="caret"></b></a>
+							<ul class="dropdown-menu">
+								<c:forEach items="${fnc:getSiteList()}" var="site"><li><a href="${ctx}/cms/site/select?id=${site.id}&flag=1">${site.name}</a></li></c:forEach>
+							</ul>
+						</li>
+						</shiro:hasPermission> --%>
+					</ul>
+				</div><!--/.nav-collapse -->
+			</div>
+	    </div>
+	    <div class="container-fluid">
+			<div id="content" class="row-fluid c-content">
+				<div id="left" class="c-left"><%-- 
+					<iframe id="menuFrame" name="menuFrame" src="" style="overflow:visible;" scrolling="yes" frameborder="no" width="100%" height="650"></iframe> --%>
+				</div>
+				<div id="openClose" class="close">&nbsp;</div>
+				<div id="right">
+					<iframe id="mainFrame" name="mainFrame" src="" style="overflow:visible;" scrolling="yes" frameborder="no" width="100%" height="650"></iframe>
+				</div>
+			</div>
+		    <%-- <div id="footer" class="row-fluid">
+	            Copyright &copy; 2012-${fns:getConfig('copyrightYear')} ${fns:getConfig('productName')} - Powered By <a href="http://jeesite.com" target="_blank">JeeSite</a> ${fns:getConfig('version')}
+			</div> --%>
+		</div>
+	</div>
+	<script src="${ctxStatic}/pushJs/push.min.js" type="text/javascript"></script>
+	<script type="text/javascript"> 
+		var leftWidth = 160; // 左侧窗口大小
+		var tabTitleHeight = 33; // 页签的高度
+		var htmlObj = $("html"), mainObj = $("#main");
+		var headerObj = $("#header"), footerObj = $("#footer");
+		var frameObj = $("#left, #openClose, #right, #right iframe");
+		function wSize(){
+			var minHeight = 500, minWidth = 980;
+			var strs = getWindowSize().toString().split(",");
+			/* htmlObj.css({"overflow-x":strs[1] < minWidth ? "auto" : "hidden", "overflow-y":strs[0] < minHeight ? "auto" : "hidden"}); */
+			mainObj.css("width",strs[1] < minWidth ? minWidth - 10 : "auto");
+			//2017-10-10 注释//frameObj.height((strs[0] < minHeight ? minHeight : strs[0]) - headerObj.height() - footerObj.height() - (strs[1] < minWidth ? 42 : 28));
+			/* 新加js控制页面在一个窗口展示  start*/
+			$("#main").height(strs[0]);
+			$("#right iframe").height("100%");
+			$(".container-fluid").height(strs[0]-55);//改变高度的地方（重要经常修改）；
+			/* end */
+			//2017-10-10 注释//$("#openClose").height($("#openClose").height() - 5);// <c:if test="${tabmode eq '1'}"> 
+			$(".jericho_tab iframe").height($("#right").height() - tabTitleHeight); // </c:if>
+			wSizeWidth();
+		}
+		function wSizeWidth(){
+			if (!$("#openClose").is(":hidden")){
+				var leftWidth = ($("#left").width() < 0 ? 0 : $("#left").width());
+				$("#right").width($("#content").width()- leftWidth - $("#openClose").width() -5);
+			}else{
+				$("#right").width("100%");
+			}
+		}// <c:if test="${tabmode eq '1'}"> 
+		function openCloseClickCallBack(b){
+			$.fn.jerichoTab.resize();
+		} // </c:if>
+		$(function(){
+			$.ajax({
+				url:"${ctx}/sys/user/loginState",
+				type:'post',
+				dataType:'json',
+				data:null,
+				success:function(data){
+					if(data != "1" && sessionStorage.getItem('loginState') != "0"){
+					sessionStorage.setItem('loginState',"0");
+						layer.open({
+					        type: 2,//2是iframe层
+					        title: '修改初始密码',//标题
+					        shadeClose: true,//点击遮罩层也关闭
+					        id: '1',//同时只能有一个弹窗
+					        scrollbar: false,//弹窗时浏览器不能滚动
+					        area: ['800px', '500px'],//弹窗宽高
+					        content: '${ctx}/sys/user/modifyPwd1'//这个引号里写要访问页面的路径
+						});
+					}
+				}
+			});
+		});
+	</script>
+	<script src="${ctxStatic}/common/wsize.min.js" type="text/javascript"></script>
+</body>
+<link href="${ctxStatic}/layer-v2.3/layim/layim.css" type="text/css" rel="stylesheet"/>
+<script type="text/javascript">
+	var currentId = '${fns:getUser().loginName}';
+	var currentName = '${fns:getUser().name}';
+	var currentFace ='${fns:getUser().photo}';
+	var url="${ctx}";
+	var wsServer = 'ws://'+window.document.domain+':8668';
+</script>
+<script src="${ctxStatic}/layer-v2.3/layim/layer.min.js"></script>
+<script src="${ctxStatic}/layer-v2.3/layim/layim.js"></script>
+</html>

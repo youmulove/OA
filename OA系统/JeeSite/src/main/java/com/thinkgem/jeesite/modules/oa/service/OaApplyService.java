@@ -1,0 +1,428 @@
+/**
+ * Copyright &copy; 2012-2016 <a href="https://github.com/thinkgem/jeesite">JeeSite</a> All rights reserved.
+ */
+package com.thinkgem.jeesite.modules.oa.service;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.thinkgem.jeesite.common.persistence.Page;
+import com.thinkgem.jeesite.common.service.CrudService;
+import com.thinkgem.jeesite.modules.oa.dao.OaApplyDao;
+import com.thinkgem.jeesite.modules.oa.entity.OaApply;
+import com.thinkgem.jeesite.modules.sys.entity.Office;
+import com.thinkgem.jeesite.modules.sys.entity.User;
+import com.thinkgem.jeesite.modules.sys.service.OfficeService;
+import com.thinkgem.jeesite.modules.sys.utils.UserUtils;
+
+/**
+ * 用章审批报表Service
+ * 
+ * @author jhm
+ * @version 2017-10-11
+ */
+@Service
+@Transactional(readOnly = true)
+public class OaApplyService extends CrudService<OaApplyDao, OaApply> {
+
+	@Autowired
+	private OaApplyDao oaApplyDao;
+	@Autowired
+	private OfficeService officeService;
+
+	public OaApply get(String id) {
+		return super.get(id);
+	}
+
+	public List<OaApply> findList(OaApply oaApply) {
+		return super.findList(oaApply);
+	}
+
+	public Page<OaApply> findPage(Page<OaApply> page, OaApply oaApply) {
+		return super.findPage(page, oaApply);
+	}
+
+	@Transactional(readOnly = false)
+	public void save(OaApply oaApply) {
+		super.save(oaApply);
+	}
+
+	@Transactional(readOnly = false)
+	public void delete(OaApply oaApply) {
+		super.delete(oaApply);
+	}
+
+	public String getApplyNames(String auditIds) {
+		String fir = "";
+		if (auditIds != null) {
+			String[] firSplit = auditIds.split(",");
+			for (int i = 0; i < firSplit.length; i++) {
+				User user = UserUtils.get(firSplit[i]);
+				if (user == null) {
+					continue;
+				}
+				fir += user.getName() + ",";
+			}
+			if (fir.length() > 0) {
+				fir = fir.substring(0, fir.length() - 1);
+			}
+		}
+		return fir;
+	}
+
+	public String getApplyOfficeNames(String officeIds) {
+		String[] firSplit = officeIds.split(",");
+		String fir = "";
+		for (int i = 2; i < firSplit.length; i++) {
+			Office office = officeService.get(firSplit[i]);
+			if (office == null) {
+				continue;
+			}
+			fir += office.getName() + "--";
+		}
+		if (fir.length() > 0) {
+			fir = fir.substring(0, fir.length() - 2);
+		}
+		return fir;
+	}
+
+	public List<OaApply> getAllApplyNames(OaApply oaApply) {
+		List<OaApply> reportList = oaApplyDao.findList(oaApply);
+		for (OaApply apply : reportList) {
+			String firId = apply.getAuditFirId();
+			String secId = apply.getAuditSecId();
+			String thrId = apply.getAuditThrId();
+			String fouId = apply.getAuditFouId();
+			String copyId = apply.getCopytoId();
+			String firState = apply.getAuditFirState();
+			String secState = apply.getAuditSecState();
+			String thrState = apply.getAuditThrState();
+			String fouState = apply.getAuditFouState();
+
+			String officeParentId = apply.getOffice().getId();
+			String officeIds = apply.getYuliu1();
+			String allOfficeIds = officeIds + "," + officeParentId;
+			// SimpleDateFormat sdf = new SimpleDateFormat(
+			// " yyyy-MM-dd HH:mm:ss " );
+			// String endTime = sdf.format(apply.getEndTime());
+			// System.out.println("结束日期"+endTime);
+			if (firId == null && secId == null && thrId == null
+					&& fouId == null) {
+				// System.out.println("一级审批都没有");
+			} else {
+				if (firId != null && secId == null && thrId == null
+						&& fouId == null) {
+					// System.out.println("有一级审批");
+					apply.setAuditFirId(this.getApplyNames(firId));
+					if ("y".equals(firState)) {
+						apply.setAuditFirState("通过");
+						apply.setEndAuditState("通过");
+					} else if ("n".equals(firState)) {
+						apply.setAuditFirState("未通过");
+						apply.setEndAuditState("驳回");
+					} else {
+						apply.setEndAuditState("待审核");
+					}
+				} else if (firId != null && secId != null && thrId == null
+						&& fouId == null) {
+					// System.out.println("有二级审批");
+
+					apply.setAuditFirId(this.getApplyNames(firId));
+					apply.setAuditSecId(this.getApplyNames(secId));
+
+					if (firState != null && secState != null) {
+						if ("y".equals(firState) && "y".equals(secState)) {
+							apply.setAuditFirState("通过");
+							apply.setAuditSecState("通过");
+							apply.setEndAuditState("通过");
+						} else {
+							apply.setAuditFirState((firState == "y") ? "通过"
+									: "未通过");
+							apply.setAuditSecState((secState == "y") ? "通过"
+									: "未通过");
+							apply.setEndAuditState("驳回");
+						}
+
+					} else if (firState == null && secState == null) {
+						apply.setEndAuditState("待审核");
+					} else if (firState != null && secState == null) {
+						apply.setAuditFirState(("y".equals(firState)) ? "通过"
+								: "未通过");
+						apply.setEndAuditState(("y".equals(firState)) ? "待审核"
+								: "驳回");
+					} else if (firState == null && secState != null) {
+						apply.setAuditFirState("无");
+						apply.setAuditSecState(("y".equals(secState)) ? "通过"
+								: "未通过");
+						apply.setEndAuditState(("y".equals(secState)) ? "通过"
+								: "驳回");
+					}
+
+				} else if (firId != null && secId != null && thrId != null
+						&& fouId == null) {
+					// System.out.println("有三级审批");
+					apply.setAuditFirId(this.getApplyNames(firId));
+					apply.setAuditSecId(this.getApplyNames(secId));
+					apply.setAuditThrId(this.getApplyNames(thrId));
+					if (firState != null && secState != null
+							&& thrState != null) {
+						if ("y".equals(firState) && "y".equals(secState)
+								&& "y".equals(thrState)) {
+							apply.setAuditFirState("通过");
+							apply.setAuditSecState("通过");
+							apply.setAuditThrState("通过");
+							apply.setEndAuditState("通过");
+						} else if ("n".equals(firState) || "n".equals(secState)
+								|| "n".equals(thrState)) {
+							apply.setAuditFirState("y".equals(firState) ? "通过"
+									: "未通过");
+							apply.setAuditSecState("y".equals(secState) ? "通过"
+									: "未通过");
+							apply.setAuditThrState("y".equals(thrState) ? "通过"
+									: "未通过");
+							apply.setEndAuditState("驳回");
+						}
+					} else if (firState != null && secState != null
+							&& thrState == null) {
+						apply.setAuditFirState("y".equals(firState) ? "通过"
+								: "未通过");
+						apply.setAuditSecState("y".equals(secState) ? "通过"
+								: "未通过");
+						// apply.setAuditThrState("y".equals(thrState)?"通过":"未通过");
+						if ("y".equals(firState) && "y".equals(secState)) {
+
+							apply.setAuditThrState("待审核");
+						}
+						apply.setEndAuditState("驳回");
+					} else if (firState != null && secState == null
+							&& thrState == null) {
+						apply.setAuditFirState("y".equals(firState) ? "通过"
+								: "未通过");
+						// apply.setAuditSecState(secState=="y"?"通过":"未通过");
+						apply.setEndAuditState(("y".equals(firState)) ? "待审核"
+								: "驳回");
+
+					} else if (firState == null && secState == null
+							&& thrState == null) {
+						apply.setEndAuditState("待审核");
+					} else if (firState == null && secState == null
+							&& thrState != null) {
+						apply.setAuditFirState("无");
+						apply.setAuditSecState("无");
+						apply.setAuditThrState("y".equals(thrState) ? "通过"
+								: "未通过");
+						apply.setEndAuditState(("y".equals(thrState)) ? "通过"
+								: "驳回");
+					} else if (firState == null && secState != null
+							&& thrState != null) {
+						apply.setAuditFirState("无");
+						if ("y".equals(secState) && "y".equals(thrState)) {
+							apply.setAuditSecState("通过");
+							apply.setAuditThrState("通过");
+							apply.setEndAuditState("通过");
+						} else {
+							apply.setAuditSecState("通过");
+							apply.setAuditThrState("y".equals(thrState) ? "通过"
+									: "未通过");
+							apply.setEndAuditState(("y".equals(thrState)) ? "通过"
+									: "驳回");
+						}
+					} else if (firState == null && secState != null
+							&& thrState == null) {
+						apply.setAuditFirState("无");
+						if ("y".equals(secState)) {
+							apply.setAuditSecState("通过");
+							apply.setEndAuditState("待审核");
+						} else {
+							apply.setAuditSecState("未通过");
+							apply.setEndAuditState("驳回");
+						}
+					} else {
+						apply.setEndAuditState("待审核");
+					}
+				} else if (firId != null && secId != null && thrId != null
+						&& fouId != null) {
+					// System.out.println("有四级审批");
+					apply.setAuditFirId(this.getApplyNames(firId));
+					apply.setAuditSecId(this.getApplyNames(secId));
+					apply.setAuditThrId(this.getApplyNames(thrId));
+					apply.setAuditFouId(this.getApplyNames(fouId));
+					if (firState != null && secState != null
+							&& thrState != null && thrState != null) {
+						if ("y".equals(firState) && "y".equals(secState)
+								&& "y".equals(thrState) && "y".equals(fouState)) {
+							apply.setAuditFirState("通过");
+							apply.setAuditSecState("通过");
+							apply.setAuditThrState("通过");
+							apply.setAuditFouState("通过");
+							apply.setEndAuditState("通过");
+						} else if ("n".equals(firState) || "n".equals(secState)
+								|| "n".equals(thrState) || "n".equals(fouState)) {
+							apply.setAuditFirState(firState == "y" ? "通过"
+									: "未通过");
+							apply.setAuditSecState(secState == "y" ? "通过"
+									: "未通过");
+							apply.setAuditThrState(thrState == "y" ? "通过"
+									: "未通过");
+							apply.setAuditFouState(fouState == "y" ? "通过"
+									: "未通过");
+							apply.setEndAuditState("驳回");
+						}
+					} else if (firState == null && secState == null
+							&& thrState == null && fouState == null) {
+						apply.setEndAuditState("待审核");
+					} else if (firState != null && secState == null
+							&& thrState == null && fouState == null) {
+						apply.setAuditFirState(firState == "y" ? "通过" : "未通过");
+						apply.setEndAuditState(firState == "y" ? "待审核" : "驳回");
+					} else if (firState != null && secState != null
+							&& thrState == null && fouState == null) {
+						apply.setAuditFirState("通过");
+						apply.setAuditSecState(secState == "y" ? "通过" : "未通过");
+						apply.setEndAuditState(secState == "y" ? "待审核" : "驳回");
+					} else if (firState != null && secState != null
+							&& thrState != null && fouState == null) {
+						apply.setAuditFirState("通过");
+						apply.setAuditSecState("通过");
+						apply.setAuditThrState(thrState == "y" ? "通过" : "未通过");
+						apply.setEndAuditState(thrState == "y" ? "待审核" : "驳回");
+					} else if (firState == null && secState == null
+							&& thrState == null && fouState != null) {
+						apply.setAuditFirState("无");
+						apply.setAuditSecState("无");
+						apply.setAuditThrState("无");
+						apply.setAuditFouState(fouState == "y" ? "通过" : "未通过");
+						apply.setEndAuditState(fouState == "y" ? "待审核" : "驳回");
+					} else if (firState == null && secState == null
+							&& thrState != null && fouState == null) {
+						apply.setAuditFirState("无");
+						apply.setAuditSecState("无");
+						apply.setAuditThrState(thrState == "y" ? "通过" : "未通过");
+						apply.setEndAuditState(thrState == "y" ? "待审核" : "驳回");
+					} else if (firState == null && secState == null
+							&& thrState != null && fouState != null) {
+						apply.setAuditFirState("无");
+						apply.setAuditSecState("无");
+						apply.setAuditThrState("通过");
+						apply.setAuditFouState(fouState == "y" ? "通过" : "未通过");
+						apply.setEndAuditState(fouState == "y" ? "待审核" : "驳回");
+					} else if (firState == null && secState != null
+							&& thrState == null && fouState == null) {
+						apply.setAuditFirState("无");
+						apply.setAuditSecState(secState == "y" ? "通过" : "未通过");
+						apply.setEndAuditState(secState == "y" ? "待审核" : "驳回");
+					} else if (firState == null && secState != null
+							&& thrState != null && fouState == null) {
+						apply.setAuditFirState("无");
+						apply.setAuditSecState("通过");
+						apply.setAuditThrState(thrState == "y" ? "通过" : "未通过");
+						apply.setEndAuditState(thrState == "y" ? "待审核" : "驳回");
+					} else if (firState == null && secState != null
+							&& thrState != null && fouState != null) {
+						apply.setAuditFirState("无");
+						apply.setAuditSecState("通过");
+						apply.setAuditThrState("通过");
+						apply.setAuditFouState(fouState == "y" ? "通过" : "未通过");
+						apply.setEndAuditState(fouState == "y" ? "待审核" : "驳回");
+					} else {
+						apply.setEndAuditState("待审核");
+					}
+				}
+			}
+
+			if ("".equals(copyId) || copyId == null) {
+
+			} else {
+				String[] firSplit = copyId.split(",");
+				String fir = "";
+				for (int i = 0; i < firSplit.length; i++) {
+					User user = UserUtils.get(firSplit[i]);
+					if (user == null) {
+						continue;
+					}
+					fir += user.getName() + ",";
+				}
+				apply.setCopytoId(fir);
+			}
+			if (officeIds == null || ("").equals(officeIds)) {
+
+			} else {
+				apply.setOfficeNames(this.getApplyOfficeNames(allOfficeIds));
+			}
+
+		}
+		return reportList;
+
+	}
+
+	public Page<OaApply> findWithNames(Page<OaApply> page, OaApply oaApply) {
+		oaApply.setPage(page);
+		page.setList(this.getAllApplyNames(oaApply));
+		return page;
+
+	}
+
+	public String returnFlag(OaApply oaApply) {
+		String onePerson = oaApply.getAuditFirId();
+		String oneFlag = oaApply.getAuditFirState();
+		String twoPerson = oaApply.getAuditSecId();
+		String twoFlag = oaApply.getAuditSecState();
+		String threePerson = oaApply.getAuditThrId();
+		String threeFlag = oaApply.getAuditThrState();
+		String fourPerson = oaApply.getAuditFouId();
+		String fourFlag = oaApply.getAuditFouState();
+		if (fourPerson == null || "".equals(fourPerson)) {
+			if (threePerson == null || "".equals(threePerson)) {
+				if (twoPerson == null || "".equals(twoPerson)) {
+					if (onePerson == null || "".equals(onePerson)) {
+						return "error";
+					} else {
+						if (oneFlag != null && !("".equals(oneFlag))) {
+							if (oneFlag.equals("y")) {
+								return "y";
+							} else {
+								return "n";
+							}
+						} else {
+							return "z";
+						}
+					}
+				} else {
+					if (twoFlag != null && !("".equals(twoFlag))) {
+						if (twoFlag.equals("y")) {
+							return "y";
+						} else {
+							return "n";
+						}
+					} else {
+						return "z";
+					}
+				}
+			} else {
+				if (threeFlag != null && !("".equals(threeFlag))) {
+					if (threeFlag.equals("y")) {
+						return "y";
+					} else {
+						return "n";
+					}
+				} else {
+					return "z";
+				}
+			}
+		} else {
+			if (fourFlag != null && !("".equals(fourFlag))) {
+				if (fourFlag.equals("y")) {
+					return "y";
+				} else {
+					return "n";
+				}
+			} else {
+				return "z";
+			}
+		}
+	}
+
+}

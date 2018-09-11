@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+  <meta charset="UTF-8">
+  <title>审批流程</title>
+  <link rel="stylesheet" href="css/global.css"/>
+  <link rel="stylesheet" href="css/approvalProcess.css"/>
+</head>
+<body>
+  <header class="header clearfix">
+    <div class="width--1080 h__wrap">
+      <!--logo-->
+      <div class="logo">
+        <img src="img/logo.png" alt=""/>
+        <span>oa管理后台</span>
+      </div>
+    </div>
+  </header>
+  <main class="main width--1080 clearfix">
+    <!--<header class="m__header">
+      审批流程控制
+    </header>-->
+    <div style="display:flex">
+      <aside class="m__aside j-aside">
+        <ul>
+          <li data-url="url_leave" class="hover"><img src="img/leave.png" alt=""/>请假</li>
+          <li data-url="url_overtime"><img src="img/overtime.png" alt=""/>加班</li>
+          <li data-url="url_home"><img src="img/home.png" alt=""/>会议室</li>
+          <li data-url="url_projector"><img src="img/projector.png" alt=""/>投影仪</li>
+          <li><img src="img/common.png" alt=""/>用章</li>
+        </ul>
+      </aside>
+      <article class="m__article">
+        <!--请假部分-->
+        <div class="url_leave">
+          <div class="m__ar__list">
+            <form action="">
+              <ul>
+                <li><label class="form--star" for="">请假类型</label>
+                  <select name="" id="">
+                    <option value="">年假</option>
+                    <option value="">事假</option>
+                    <option value="">病假</option>
+                  </select>
+                </li>
+                <li><label class="form--star" for="">开始、结束时间</label>
+                  <input readonly class="layDate" type="text"/>
+                </li>
+                <li><label class="form--star" for="">时长（小时）</label>
+                  <input type="text"/>
+                </li>
+                <li><label class="form--star" for="">加班事由</label>
+                  <textarea style="" name="" id="" cols="30" rows="10"></textarea>
+                </li>
+                <li><label for="">图片</label>
+                  <input class="form--file" type="file"/>
+                </li>
+              </ul>
+            </form>
+          </div>
+          <button class="m--btn" type="button">提交</button>
+        </div>
+        <!--加班部分-->
+        <div class="url_overtime" style="display:none;">
+          <div class="m__ar__list">
+            <form action="">
+              <ul>
+                <!--<li>默认审批人
+                  <span class="m__icon&#45;&#45;add"></span>
+                </li>
+                <li>审批人去重
+                  <select name="" id="">
+                    <option value="">不启用自动去重</option>
+                    <option value="">统一审批人在流程中出现多次时，自动去重</option>
+                    <option value="">统一审批人仅在连续出现时，自动去重</option>
+                  </select>
+                </li>-->
+                <li><label class="form--star" for="">开始、结束时间</label>
+                  <input readonly class="layDate" type="text"/>
+                </li>
+                <li><label class="form--star" for="">时长（小时）</label>
+                  <input type="text"/>
+                </li>
+                <li><label class="form--star" for="">是否为法定假日</label>
+                  <input type="checkbox"/>
+                </li>
+                <li><label class="form--star" for="">加班事由</label>
+                  <textarea style="" name="" id="" cols="30" rows="10"></textarea>
+                </li>
+                <li><label for="">图片</label>
+                  <input class="form--file" type="file"/>
+                </li>
+              </ul>
+            </form>
+          </div>
+          <button class="m--btn" type="button">提交</button>
+        </div>
+        <!--申请会议室部分-->
+        <div class="url_home" style="position:relative; display:none;">
+          <div class="m__ar__list home__list">
+            <!--会议室详情-->
+            <ul>
+              <li class="clearfix" style="line-height: normal; margin-bottom:20px;">
+                <p class="home--title" style="height:100%;">
+                  <span style="display:inline-block;width:50px;">会议室</span>
+                </p>
+                <div class="home--content" style="height:100%;">
+                  <p>
+                    <span>日期</span>
+                    <span>时间</span>
+                    <span>部门</span>
+                    <span>姓名</span>
+                  </p>
+                </div>
+              </li>
+              <li class="clearfix">
+                <p class="home--title">
+                  <img src="img/home1.png" alt=""/>
+                  A403
+                </p>
+                <div class="home--content">
+                  <p>
+                    <span>2017-09-21</span>
+                    <span>8:00-9:00</span>
+                    <span>科技公司综合业务部</span>
+                    <span>何旭</span>
+                  </p>
+                  <p>
+                    <span>2017-09-21</span>
+                    <span>8:00-9:00</span>
+                    <span>科技公司综合业务部</span>
+                    <span>何旭</span>
+                  </p>
+                  <p>
+                    <span>2017-09-21</span>
+                    <span>8:00-9:00</span>
+                    <span>科技公司综合业务部</span>
+                    <span>何旭</span>
+                  </p>
+                  <p>
+                    <span>2017-09-21</span>
+                    <span>8:00-9:00</span>
+                    <span>科技公司综合业务部</span>
+                    <span>何旭</span>
+                  </p>
+                  <p>
+                    <span>2017-09-21</span>
+                    <span>8:00-9:00</span>
+                    <span>科技公司综合业务部</span>
+                    <span>何旭</span>
+                  </p>
+                </div>
+              </li>
+              <li class="clearfix">
+                <p class="home--title">
+                  <img src="img/home1.png" alt=""/>
+                  A403
+                </p>
+                <div class="home--content">
+                  <p>
+                    <span>2017-09-21</span>
+                    <span>8:00-9:00</span>
+                    <span>科技公司综合业务部</span>
+                    <span>何旭</span>
+                  </p>
+                  <p>
+                    <span>2017-09-21</span>
+                    <span>8:00-9:00</span>
+                    <span>科技公司综合业务部</span>
+                    <span>何旭</span>
+                  </p>
+                  <p>
+                    <span>2017-09-21</span>
+                    <span>8:00-9:00</span>
+                    <span>科技公司综合业务部</span>
+                    <span>何旭</span>
+                  </p>
+                  <p>
+                    <span>2017-09-21</span>
+                    <span>8:00-9:00</span>
+                    <span>科技公司综合业务部</span>
+                    <span>何旭</span>
+                  </p>
+                </div>
+              </li>
+            </ul>
+          </div>
+          <!--申请会议室-->
+          <button class="j-applyHome m--btn" style="position:absolute;top:-25px;right:-100px;" class="m--btn" type="button">申请会议室</button>
+        </div>
+        <!--投影仪部分-->
+        <div class="url_projector" style="display:none;">
+          <div class="m__ar__list">
+            <form action="">
+              <ul>
+                <li><label class="form--star" for="">申请人</label>
+                  <input type="text"/>
+                </li>
+                <li><label class="form--star" for="">开始、结束时间</label>
+                  <input readonly class="layDate" type="text"/>
+                </li>
+                <li><label class="form--star" for="">时长（小时）</label>
+                  <input type="text"/>
+                </li>
+                <li><label class="form--star" for="">是否需要转换头</label>
+                  <input type="checkbox"/>
+                </li>
+                <li><label class="form--star" for="">加班事由</label>
+                  <textarea style="" name="" id="" cols="30" rows="10"></textarea>
+                </li>
+                <li><label for="">图片</label>
+                  <input class="form--file" type="file"/>
+                </li>
+              </ul>
+            </form>
+          </div>
+          <button class="m--btn" type="button">提交</button>
+        </div>
+
+      </article>
+    </div>
+  </main>
+
+  <script src="js/jquery-3.2.1.js"></script>
+  <script src="layer/layer.js"></script>
+  <script src="js/laydate/laydate.js"></script>
+  <script>
+    $(".j-aside").on("click","li",function(){
+      $(this).addClass("hover").siblings("li").removeClass("hover");
+      $("."+$(this).attr("data-url")).show().siblings("div").hide();
+    });
+    //日期范围
+    lay('.layDate').each(function(){
+      laydate.render({
+        elem: this,
+        type: 'datetime',//时间类型
+        range: '~',//分隔符号
+        format:'yyyy-MM-dd HH:mm:ss',
+        trigger: 'focus',//触发事件
+        btns: ['clear', 'now', 'confirm'],//底部按钮
+        theme: 'grid'//格子主题
+      });
+    });
+    /*申请会议室*/
+    $(".j-applyHome").on("click",function() {
+      let htmlStr = `<div class="popup">
+                      <div class="p__content">
+                        <header class="p__header">申请会议室</header>
+                        <div class="form-group">
+                          <div class="form-list">
+                            <label for="">
+                              <span>*</span>
+                              申请人：
+                            </label>
+                            <div class="form--input">`;
+
+      htmlStr +=            '<input style="width:85%;" name="" type="text" value="">';
+
+      htmlStr +=           `</div>
+                          </div>
+                          <div class="form-list">
+                            <label for="">
+                              <span>*</span>
+                              开始结束时间：
+                            </label>
+                            <div class="form--input">
+                              <input style="width:85%;" readonly class="layDate_apply" name="" type="text" value="">
+                            </div>
+                          </div>
+                          <div class="form-list">
+                            <label for="">
+                              <span>*</span>
+                              时长(小时)：
+                            </label>
+                            <div class="form--input">
+                              <input style="width:85%;" name="" type="text" value="">
+                            </div>
+                          </div>
+                          <div class="form-list">
+                            <label for="">
+                              <span>*</span>
+                              会议室：
+                            </label>
+                            <div class="form--input">
+                              <select style="width:85%;" name="" id="">
+                                <option value="">请选择会议室</option>`;
+
+      htmlStr +=               '<option value="">A402</option>';
+
+      htmlStr +=             `</select>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="p__btn">
+                        <button type="button">提交</button>
+                        <button type="button" onclick="layer.closeAll('page')">取消</button>
+                      </div>
+                    </div>`;
+      layer.open({
+        type: '1',//1是页面层
+        title: '添加假期',//标题
+        shadeClose: true,//点击遮罩层也关闭
+        id: '1',//同时只能有一个弹窗
+        scrollbar: false,//弹窗时浏览器不能滚动
+        area: ['600px', '95%'],//弹窗宽高
+        //弹窗点击×的回调函数
+        /* cancel: function(index, layero){
+         layer.close(index);
+         },*/
+        content: htmlStr
+      });
+      laydate.render({
+        elem: '.layDate_apply',
+        type: 'datetime',//时间类型
+        range: '~',//分隔符号
+        format:'yyyy-MM-dd HH:mm:ss',
+        trigger: 'focus',//触发事件
+        btns: ['clear', 'now', 'confirm'],//底部按钮
+        theme: 'grid'//格子主题
+      });
+    });
+  </script>
+</body>
+</html>

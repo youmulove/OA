@@ -1,0 +1,453 @@
+/**
+ * Copyright &copy; 2012-2016 <a href="https://github.com/thinkgem/jeesite">JeeSite</a> All rights reserved.
+ */
+package com.thinkgem.jeesite.modules.sys.web;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.shiro.authz.UnauthorizedException;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.apache.shiro.web.util.WebUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.google.common.collect.Maps;
+import com.thinkgem.jeesite.common.config.Global;
+import com.thinkgem.jeesite.common.persistence.Page;
+import com.thinkgem.jeesite.common.security.shiro.session.SessionDAO;
+import com.thinkgem.jeesite.common.servlet.ValidateCodeServlet;
+import com.thinkgem.jeesite.common.utils.CacheUtils;
+import com.thinkgem.jeesite.common.utils.CookieUtils;
+import com.thinkgem.jeesite.common.utils.IdGen;
+import com.thinkgem.jeesite.common.utils.SpringContextHolder;
+import com.thinkgem.jeesite.common.utils.StringUtils;
+import com.thinkgem.jeesite.common.web.BaseController;
+import com.thinkgem.jeesite.modules.iim.entity.MailBox;
+import com.thinkgem.jeesite.modules.iim.entity.MailPage;
+import com.thinkgem.jeesite.modules.iim.service.MailBoxService;
+import com.thinkgem.jeesite.modules.sys.entity.User;
+import com.thinkgem.jeesite.modules.sys.security.FormAuthenticationFilter;
+import com.thinkgem.jeesite.modules.sys.security.SystemAuthorizingRealm.Principal;
+import com.thinkgem.jeesite.modules.sys.service.SystemService;
+import com.thinkgem.jeesite.modules.sys.utils.UserUtils;
+
+/**
+ * 登录Controller
+ * 
+ * @author ThinkGem
+ * @version 2013-5-31
+ */
+@Controller
+public class LoginController extends BaseController {
+
+	@Autowired
+	private SessionDAO sessionDAO;
+	@Autowired
+	private SystemService systemService;
+	@Autowired
+	private MailBoxService mailBoxService;
+	Map<String, Object> codeMap = new HashMap<String, Object>();
+
+	/**
+	 * 管理登录
+	 * 
+	 * @throws UnsupportedEncodingException
+	 */
+	@RequestMapping(value = "${adminPath}/login", method = RequestMethod.GET)
+	public String login(HttpServletRequest request,
+			HttpServletResponse response, Model model)
+			throws UnsupportedEncodingException {
+		Principal principal = UserUtils.getPrincipal();
+		String forgot = request.getParameter("forgot");
+		if ("forgot".equals(forgot)) {
+			return "modules/sys/sysForgetPwd";
+		}
+		/*
+		 * if("2".equals(forgotPassword)){ nodify(request, response, null, null,
+		 * model); return "modules/sys/sysLogin2"; }
+		 */
+		// // 默认页签模式
+		// String tabmode = CookieUtils.getCookie(request, "tabmode");
+		// if (tabmode == null){
+		// CookieUtils.setCookie(response, "tabmode", "1");
+		// }
+
+		if (logger.isDebugEnabled()) {
+			logger.debug("login, active session size: {}", sessionDAO
+					.getActiveSessions(false).size());
+		}
+
+		// 如果已登录，再次访问主页，则退出原账号。
+		if (Global.TRUE.equals(Global.getConfig("notAllowRefreshIndex"))) {
+			CookieUtils.setCookie(response, "LOGINED", "false");
+		}
+
+		// 如果已经登录，则跳转到管理首页
+		if (principal != null && !principal.isMobileLogin()) {
+			return "redirect:" + adminPath;
+		}
+		// String view;
+		// view = "/WEB-INF/views/modules/sys/sysLogin.jsp";
+		// view = "classpath:";
+		// view +=
+		// "jar:file:/D:/GitHub/jeesite/src/main/webapp/WEB-INF/lib/jeesite.jar!";
+		// view += "/"+getClass().getName().replaceAll("\\.",
+		// "/").replace(getClass().getSimpleName(), "")+"view/sysLogin";
+		// view += ".jsp";
+		return "modules/sys/sysLogin";
+	}
+
+	@RequestMapping(value = "${adminPath}/forget")
+	@ResponseBody
+	public JsonResult forget(HttpServletRequest request,
+			HttpServletResponse response, Model model)
+			throws UnsupportedEncodingException {
+		Map<String, String> map = new HashMap<String, String>();
+		String username = request.getParameter("username");// 用户手机号
+		String code = request.getParameter("code");// 如果值不为空，获取短信验证码
+		String message = null;
+		String flag = "1";// 0:成功，1：失败
+		if ("request".equals(code)) {
+			map = denglu(request, response, username);
+			message = map.get("message");
+			flag = map.get("flag");
+			return new JsonResult(flag, message, null);
+		}
+		String submit = request.getParameter("submit");// 如果值不为空，提交修改密码
+		if ("submit".equals(submit)) {
+			String userNewPwd = request.getParameter("userNewPwd");// 输入新密码
+			String userNewPwdRepeat = request.getParameter("userNewPwdRepeat");// 输入确认密码
+			map = nodifyPassword(request, response, userNewPwd,
+					userNewPwdRepeat, model);
+			message = map.get("message");
+			flag = map.get("flag");
+			return new JsonResult(flag, message, null);
+
+		}
+
+		String userPhoneCode = request.getParameter("userPhoneCode");// 用户输入验证码
+		// String getSessionCode = (String) request.getSession().getAttribute(
+		// username);// 获取session中验证码
+		String getSessionCode = (String) codeMap.get(username);
+		if ("".equals(username)) {
+			message = "手机号为空，请重新输入!";
+			return new JsonResult(flag, message, null);
+		}
+		if (getSessionCode == null || userPhoneCode == null) {
+			message = "验证码有误，请重获取!";
+			return new JsonResult(flag, message, null);
+		}
+		if (!userPhoneCode.equals(getSessionCode)) {
+			message = "验证码有误，请重新输入!";
+			return new JsonResult(flag, message, null);
+		}
+		if (userPhoneCode.equals(getSessionCode)) {
+			message = "验证码正确!";
+			flag = "0";
+			return new JsonResult(flag, message, null);
+		}
+
+		return new JsonResult(flag, message, null);
+	}
+
+	public Map<String, String> denglu(HttpServletRequest request,
+			HttpServletResponse response, String username)
+			throws UnsupportedEncodingException {
+		Map<String, String> map = new HashMap<String, String>();
+		String message = null;
+		String flag = "1";// 0:成功，1：失败
+		if (username == null) {
+			message = "手机号输入不能为空!";
+		}
+		User user = getSystemService().getUserByLoginName(username);
+		if (user != null) {
+			request.getSession().setAttribute("user", user);
+			String regex = "^((13[0-9])|(14[0-9])|(15[^4,\\D])|(17[0-9])|(18[0,0-9]))\\d{8}";
+			if (!username.matches(regex)) {
+				message = "手机格式输入不正确!";
+			} else {
+				System.out.println(1);
+				Long code1 = Math.round(Math.random() * 1000000);
+				String code2 = code1 + "";
+				System.out.println(2);
+				String code = code2.replaceAll(" ", "");
+				System.out.println(3);
+				URLEncoder.encode(code, "utf-8");
+				System.out.println(5);
+				SmsApi.SmsCodeSend(username, code);
+				codeMap.put(username, code);
+				// request.getSession().setAttribute(username, code);
+				System.out.println("code:" + code);
+				flag = "0";
+				message = "短信发送成功，请注意查收!";
+			}
+		} else {
+			message = "手机号输入错误，请重新输入!";
+		}
+		map.put("message", message);
+		map.put("flag", flag);
+		return map;
+
+	}
+
+	public Map<String, String> nodifyPassword(HttpServletRequest request,
+			HttpServletResponse response, String userNewPwd,
+			String userNewPwdRepeat, Model model) {
+		Map<String, String> map = new HashMap<String, String>();
+		User user = (User) request.getSession().getAttribute("user");
+		String message = null;
+		String flag = "1";// 0:成功，1：失败
+
+		if ("".equals(userNewPwd) || "".equals(userNewPwdRepeat)) {
+			message = "设置密码不能为空，请重新输入！";
+			map.put("flag", flag);
+			map.put("message", message);
+			return map;
+		}
+		String re = "^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{6,20}$";
+		if (!userNewPwdRepeat.equals(userNewPwd)) {
+			message = "密码不一致，请重新输入！";
+			map.put("flag", flag);
+			map.put("message", message);
+			return map;
+		}
+		if (userNewPwd.length() < 6 || userNewPwdRepeat.length() < 6) {
+			message = "修改密码失败，新密码位数应不少于六位！";
+			map.put("flag", flag);
+			map.put("message", message);
+			return map;
+		}
+		if (!userNewPwd.matches(re) || !userNewPwdRepeat.matches(re)) {
+			message = "修改密码失败，新密码需由数字和字母组成且不能大于20位！";
+			map.put("flag", flag);
+			map.put("message", message);
+			return map;
+		}
+		if (userNewPwd.length() >= 6 && userNewPwdRepeat.length() >= 6
+				&& userNewPwd.matches(re) && userNewPwdRepeat.matches(re)) {
+			systemService.updatePasswordById(user.getId(), user.getLoginName(),
+					userNewPwd);
+			message = "修改密码成功";
+			flag = "0";
+			map.put("flag", flag);
+			map.put("message", message);
+			return map;
+		} else {
+			message = "修改密码失败，旧密码错误";
+			map.put("flag", flag);
+			map.put("message", message);
+			return map;
+		}
+
+	}
+
+	public SystemService getSystemService() {
+		if (systemService == null) {
+			systemService = SpringContextHolder.getBean(SystemService.class);
+		}
+		return systemService;
+	}
+
+	/**
+	 * 管理退出
+	 */
+	@RequestMapping(value = "${adminPath}/logout1", method = RequestMethod.GET)
+	public String logout1(HttpServletRequest request,
+			HttpServletResponse response, Model model) {
+		UserUtils.getSubject().logout();
+		return "redirect:" + adminPath + "/login";
+
+	}
+
+	/**
+	 * 登录失败，真正登录的POST请求由Filter完成
+	 */
+	@RequestMapping(value = "${adminPath}/login", method = RequestMethod.POST)
+	public String loginFail(HttpServletRequest request,
+			HttpServletResponse response, Model model) {
+		Principal principal = UserUtils.getPrincipal();
+
+		// 如果已经登录，则跳转到管理首页
+		if (principal != null) {
+			return "redirect:" + adminPath;
+		}
+
+		String username = WebUtils.getCleanParam(request,
+				FormAuthenticationFilter.DEFAULT_USERNAME_PARAM);
+		boolean rememberMe = WebUtils.isTrue(request,
+				FormAuthenticationFilter.DEFAULT_REMEMBER_ME_PARAM);
+		boolean mobile = WebUtils.isTrue(request,
+				FormAuthenticationFilter.DEFAULT_MOBILE_PARAM);
+		String exception = (String) request
+				.getAttribute(FormAuthenticationFilter.DEFAULT_ERROR_KEY_ATTRIBUTE_NAME);
+		String message = (String) request
+				.getAttribute(FormAuthenticationFilter.DEFAULT_MESSAGE_PARAM);
+
+		if (StringUtils.isBlank(message) || StringUtils.equals(message, "null")) {
+			message = "手机号或密码错误, 请重试.";
+		}
+
+		model.addAttribute(FormAuthenticationFilter.DEFAULT_USERNAME_PARAM,
+				username);
+		model.addAttribute(FormAuthenticationFilter.DEFAULT_REMEMBER_ME_PARAM,
+				rememberMe);
+		model.addAttribute(FormAuthenticationFilter.DEFAULT_MOBILE_PARAM,
+				mobile);
+		model.addAttribute(
+				FormAuthenticationFilter.DEFAULT_ERROR_KEY_ATTRIBUTE_NAME,
+				exception);
+		model.addAttribute(FormAuthenticationFilter.DEFAULT_MESSAGE_PARAM,
+				message);
+
+		if (logger.isDebugEnabled()) {
+			logger.debug(
+					"login fail, active session size: {}, message: {}, exception: {}",
+					sessionDAO.getActiveSessions(false).size(), message,
+					exception);
+		}
+
+		// 非授权异常，登录失败，验证码加1。
+		if (!UnauthorizedException.class.getName().equals(exception)) {
+			model.addAttribute("isValidateCodeLogin",
+					isValidateCodeLogin(username, true, false));
+		}
+
+		// 验证失败清空验证码
+		request.getSession().setAttribute(ValidateCodeServlet.VALIDATE_CODE,
+				IdGen.uuid());
+
+		// 如果是手机登录，则返回JSON字符串
+		if (mobile) {
+			return renderString(response, model);
+		}
+
+		return "modules/sys/sysLogin";
+	}
+
+	/**
+	 * 登录成功，进入管理首页
+	 */
+	@RequiresPermissions("user")
+	@RequestMapping(value = "${adminPath}")
+	public String index(HttpServletRequest request,
+			HttpServletResponse response, Model model) {
+		Principal principal = UserUtils.getPrincipal();
+
+		// 登录成功后，验证码计算器清零
+		isValidateCodeLogin(principal.getLoginName(), false, true);
+		if (logger.isDebugEnabled()) {
+			logger.debug("show index, active session size: {}", sessionDAO
+					.getActiveSessions(false).size());
+		}
+
+		// 如果已登录，再次访问主页，则退出原账号。
+		if (Global.TRUE.equals(Global.getConfig("notAllowRefreshIndex"))) {
+			String logined = CookieUtils.getCookie(request, "LOGINED");
+			if (StringUtils.isBlank(logined) || "false".equals(logined)) {
+				CookieUtils.setCookie(response, "LOGINED", "true");
+			} else if (StringUtils.equals(logined, "true")) {
+				UserUtils.getSubject().logout();
+				return "redirect:" + adminPath + "/login";
+			}
+		}
+
+		// 如果是手机登录，则返回JSON字符串
+		if (principal.isMobileLogin()) {
+			if (request.getParameter("login") != null) {
+				return renderString(response, principal);
+			}
+			if (request.getParameter("index") != null) {
+				return "modules/sys/sysIndex";
+			}
+			return "redirect:" + adminPath + "/login";
+		}
+
+		// // 登录成功后，获取上次登录的当前站点ID
+		// UserUtils.putCache("siteId",
+		// StringUtils.toLong(CookieUtils.getCookie(request, "siteId")));
+
+		// System.out.println("==========================a");
+		// try {
+		// byte[] bytes =
+		// com.thinkgem.jeesite.common.utils.FileUtils.readFileToByteArray(
+		// com.thinkgem.jeesite.common.utils.FileUtils.getFile("c:\\sxt.dmp"));
+		// UserUtils.getSession().setAttribute("kkk", bytes);
+		// UserUtils.getSession().setAttribute("kkk2", bytes);
+		// } catch (Exception e) {
+		// e.printStackTrace();
+		// }
+		// // for (int i=0; i<1000000; i++){
+		// // //UserUtils.getSession().setAttribute("a", "a");
+		// // request.getSession().setAttribute("aaa", "aa");
+		// // }
+		// System.out.println("==========================b");
+
+		MailBox mailBox = new MailBox();
+		mailBox.setReceiver(UserUtils.getUser());
+		mailBox.setReadstatus("0");// 筛选未读
+		Page<MailBox> mailPage = mailBoxService.findPage(new MailPage<MailBox>(
+				request, response), mailBox);
+		request.setAttribute("noReadCount", mailBoxService.getCount(mailBox));
+		request.setAttribute("mailPage", mailPage);
+		String name = UserUtils.getUser().getCompany().getName();
+		String remarks = systemService.getOfficeByCompany(name);
+		model.addAttribute("remarks", remarks);
+		return "modules/sys/sysIndex";
+	}
+
+	/**
+	 * 获取主题方案
+	 */
+	/*
+	 * @RequestMapping(value = "/theme/{theme}") public String
+	 * getThemeInCookie(@PathVariable String theme, HttpServletRequest request,
+	 * HttpServletResponse response) { if (StringUtils.isNotBlank(theme)) {
+	 * CookieUtils.setCookie(response, "theme", theme); } else { theme =
+	 * CookieUtils.getCookie(request, "theme"); } return "redirect:" +
+	 * request.getParameter("url"); }
+	 */
+
+	/**
+	 * 是否是验证码登录
+	 * 
+	 * @param useruame
+	 *            用户名
+	 * @param isFail
+	 *            计数加1
+	 * @param clean
+	 *            计数清零
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	public static boolean isValidateCodeLogin(String useruame, boolean isFail,
+			boolean clean) {
+		Map<String, Integer> loginFailMap = (Map<String, Integer>) CacheUtils
+				.get("loginFailMap");
+		if (loginFailMap == null) {
+			loginFailMap = Maps.newHashMap();
+			CacheUtils.put("loginFailMap", loginFailMap);
+		}
+		Integer loginFailNum = loginFailMap.get(useruame);
+		if (loginFailNum == null) {
+			loginFailNum = 0;
+		}
+		if (isFail) {
+			loginFailNum++;
+			loginFailMap.put(useruame, loginFailNum);
+		}
+		if (clean) {
+			loginFailMap.remove(useruame);
+		}
+		return loginFailNum >= 3;
+	}
+}

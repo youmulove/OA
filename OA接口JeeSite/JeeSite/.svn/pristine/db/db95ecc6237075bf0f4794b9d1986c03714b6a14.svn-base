@@ -1,0 +1,192 @@
+/**
+ * Copyright &copy; 2012-2016 <a href="https://github.com/thinkgem/jeesite">JeeSite</a> All rights reserved.
+ */
+package com.thinkgem.jeesite.modules.oa.web;
+
+import java.util.HashMap;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.ArrayUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import com.google.gson.Gson;
+import com.thinkgem.jeesite.common.persistence.Page;
+import com.thinkgem.jeesite.common.utils.StringUtils;
+import com.thinkgem.jeesite.common.web.BaseController;
+import com.thinkgem.jeesite.modules.oa.entity.ApprovalRule;
+import com.thinkgem.jeesite.modules.oa.entity.OaApplyOfficeroom;
+import com.thinkgem.jeesite.modules.oa.entity.OfficeRoom;
+import com.thinkgem.jeesite.modules.oa.service.ApprovalRuleService;
+import com.thinkgem.jeesite.modules.oa.service.OaApplyOfficeroomService;
+import com.thinkgem.jeesite.modules.oa.service.OfficeRoomService;
+import com.thinkgem.jeesite.modules.sys.entity.User;
+import com.thinkgem.jeesite.modules.sys.service.OfficeService;
+import com.thinkgem.jeesite.modules.sys.service.SystemService;
+import com.thinkgem.jeesite.modules.sys.utils.UserUtils;
+
+/**
+ * 会议室Controller
+ * 
+ * @author lisp
+ * @version 2017-09-22
+ */
+@Controller
+@RequestMapping(value = "${adminPath}/oa/officeRoom")
+public class OfficeRoomController extends BaseController {
+
+	@Autowired
+	private OfficeRoomService officeRoomService;
+	@Autowired
+	private ApprovalRuleService approvalRuleService;
+	@Autowired
+	private OaApplyOfficeroomService oaApplyOfficeroomService;
+	@Autowired
+	private SystemService systemService;
+	@Autowired
+	private OfficeService officeService;
+
+	@ModelAttribute
+	public OfficeRoom get(@RequestParam(required = false) String id) {
+		OfficeRoom entity = null;
+		if (StringUtils.isNotBlank(id)) {
+			entity = officeRoomService.get(id);
+		}
+		if (entity == null) {
+			entity = new OfficeRoom();
+		}
+		return entity;
+	}
+
+	@RequestMapping(value = { "showAll", "" })
+	public String showAll(OfficeRoom officeRoom, HttpServletRequest request,
+			HttpServletResponse response, Model model) {
+		officeRoom.setCompany(UserUtils.getUser().getCompany().getId());
+		Page<OfficeRoom> page = officeRoomService.findPage(
+				new Page<OfficeRoom>(request, response), officeRoom);
+		model.addAttribute("page", page);
+		return "modules/oa/officeRoomList";
+	}
+
+	// @RequiresPermissions("oa:officeRoom:view")
+	@RequestMapping(value = { "list", "" })
+	@ResponseBody
+	public String list(OaApplyOfficeroom officeRoom,
+			HttpServletRequest request, HttpServletResponse response,
+			Model model) {
+		officeRoom.setCompanyId(UserUtils.getUser().getCompany().getId());
+		officeRoom.setCompany(UserUtils.getUser().getCompany());
+		OfficeRoom room = new OfficeRoom();
+		room.setCompany(UserUtils.getUser().getCompany().getId());
+		List<OfficeRoom> list1 = officeRoomService.findAllRoom(room);
+		// List<OfficeRoom> list2 = officeRoomService.findList(officeRoom);
+		List<OaApplyOfficeroom> list2 = oaApplyOfficeroomService
+				.findList2(officeRoom);
+		User user = UserUtils.getUser();
+		ApprovalRule appr = new ApprovalRule();
+		appr.setApprovalCompany(user.getCompany().getName());
+		appr.setApprovalType("officeRoom");
+		// 获取审批规则信息列表
+		List<ApprovalRule> appList = approvalRuleService
+				.findApprovalRuleSelective(appr);
+		StringBuffer sb = new StringBuffer();
+		for (ApprovalRule app : appList) {
+			sb.setLength(0);
+			if (app.getApprovalPerson() != null
+					&& !("").equals(app.getApprovalPerson())) {
+				String[] split = app.getApprovalPerson().split(",");
+				for (int i = 0; i < split.length; i++) {
+					// 根据申请人所在部门和公司展示审批人 查询申请人的部门父ids和审批人的部门id
+					User u = systemService.getUser(split[i]);
+					if ((user.getOffice().getId())
+							.equals(u.getOffice().getId())) {
+						sb.append(u.getName() + ",");
+					} else {
+						String parentIds = officeService
+								.findAllDeptByUser(user).getParentIds();
+						if (ArrayUtils.contains(parentIds.split(","), u
+								.getOffice().getId())) {
+							sb.append(u.getName() + ",");
+						}
+					}
+				}
+				if ("".equals(sb.toString()) || (sb.toString()) == null) {
+					for (int i = 0; i < split.length; i++) {
+						User u = systemService.getUser(split[i]);
+						sb.append(u.getName() + ",");
+					}
+				}
+				app.setApprovalPerson(sb.toString());
+			}
+			if (app.getApprovalRank() != null
+					&& !("").equals(app.getApprovalRank())) {
+				String split = app.getApprovalRank().toString();
+				app.setApprovalRank(split.toString());
+			}
+		}
+		HashMap<String, Object> map = new HashMap<String, Object>();
+		map.put("list1", list1);
+		map.put("list2", list2);
+		map.put("appList", appList);
+
+		// ArrayList<List<OfficeRoom>> list = new ArrayList<List<OfficeRoom>>();
+		// list.add(list1);
+		// list.add(list2);
+		// String json = new Gson().toJson(list);
+		return new Gson().toJson(map);
+	}
+
+	// @RequiresPermissions("oa:officeRoom:view")
+	@RequestMapping(value = "form")
+	public String form(OfficeRoom officeRoom, String type, Model model) {
+		if ("add".equals(type)) {
+			model.addAttribute("type", type);
+			return "modules/oa/officeRoomForm";
+		} else {
+			OfficeRoom room = officeRoomService.get(officeRoom);
+			model.addAttribute("officeRoom", room);
+			model.addAttribute("type", type);
+			return "modules/oa/officeRoomForm";
+		}
+	}
+
+	// @RequiresPermissions("oa:officeRoom:edit")
+	@RequestMapping(value = "save")
+	public String save(OfficeRoom officeRoom, Model model,
+			RedirectAttributes redirectAttributes) {
+		officeRoom.setCompany(UserUtils.getUser().getCompany().getId());
+		if (!beanValidator(model, officeRoom)) {
+			return "redirect:" + adminPath + "/oa/officeRoom/showAll";
+		}
+		officeRoomService.save(officeRoom);
+		addMessage(redirectAttributes, "保存会议室成功");
+		return "redirect:" + adminPath + "/oa/officeRoom/showAll";
+	}
+
+	// @RequiresPermissions("oa:officeRoom:edit")
+	@RequestMapping(value = "delete")
+	public String delete(OfficeRoom officeRoom,
+			RedirectAttributes redirectAttributes) {
+		officeRoomService.delete(officeRoom);
+		addMessage(redirectAttributes, "删除会议室成功");
+		return "redirect:" + adminPath + "/oa/officeRoom/showAll";
+	}
+
+	@RequestMapping("detail")
+	public String detail(OfficeRoom officeRoom, Model model) {
+		OfficeRoom room = officeRoomService.get(officeRoom);
+		model.addAttribute("officeRoom", room);
+		return "modules/oa/officeRoomDetail";
+
+	}
+
+}

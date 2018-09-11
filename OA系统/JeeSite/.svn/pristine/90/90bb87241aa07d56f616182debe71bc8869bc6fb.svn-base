@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.thinkgem.jeesite.modules.oa.dao.OfficeRoomDao">
+    
+	<sql id="officeRoomColumns">
+		a.id AS "id",
+		a.office_room_name AS "officeRoomName",
+		a.office_room_position AS "officeRoomPosition",
+		a.describe AS "describe",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		a.apply_userid AS "applyUserid",
+		a.startendtime AS "startendtime",
+		a.hours AS "hours",
+		a.company AS "company",
+		a.department AS "department"
+		
+	</sql>
+	
+	<sql id="officeRoomJoins">
+	 LEFT JOIN sys_user u ON a.create_by=u.id
+	</sql>
+    
+	<select id="get" resultType="OfficeRoom">
+		SELECT 
+			<include refid="officeRoomColumns"/>
+		FROM oa_officeroom a
+		<include refid="officeRoomJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="findList" resultType="OfficeRoom">
+		SELECT 
+			<include refid="officeRoomColumns"/>
+		FROM oa_officeroom a
+		<include refid="officeRoomJoins"/>
+	where
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			
+	    <if test="company !=null and company !=''">
+			and a.company = #{company}
+		</if>
+		 <if test="startTime !=null and startTime !=''">
+			and a.create_date <![CDATA[  >=  ]]> #{startTime}
+		</if>
+		<if test="endTime !=null and endTime !=''">
+			and a.create_date<![CDATA[   <=  ]]> #{endTime}
+		</if> 
+		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.OFFICE_ROOM_NAME desc
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultType="OfficeRoom">
+		SELECT 
+			<include refid="officeRoomColumns"/>
+		FROM oa_officeroom a
+		<include refid="officeRoomJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			and a.company = #{company}
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.OFFICE_ROOM_NAME
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO oa_officeroom(
+			id,
+			office_room_name,
+			office_room_position,
+			describe,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag,
+			apply_userid,
+			startendtime,
+			hours,
+			company,
+			department
+		) VALUES (
+			#{id},
+			#{officeRoomName},
+			#{officeRoomPosition},
+			#{describe},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag},
+			#{applyUserid},
+			#{startendtime},
+			#{hours},
+			#{company},
+			#{department}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE oa_officeroom SET 	
+			office_room_name = #{officeRoomName},
+			office_room_position = #{officeRoomPosition},
+			describe = #{describe},
+			update_by = #{updateBy.id},
+			update_date = #{updateDate},
+			remarks = #{remarks},
+			apply_userid = #{applyUserid},
+			startendtime = #{startendtime},
+			hours = #{hours},
+			company = #{company},
+			department = #{department}
+		WHERE id = #{id}
+	</update>
+	
+	<update id="delete">
+		UPDATE oa_officeroom SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	<select id="findAllRoom" resultType="OfficeRoom">
+		select distinct a.OFFICE_ROOM_NAME AS "officeRoomName",a.ID from OA_OFFICEROOM a
+		<where>
+			and a.company = #{company}
+		</where>
+	</select>
+	
+	
+</mapper>

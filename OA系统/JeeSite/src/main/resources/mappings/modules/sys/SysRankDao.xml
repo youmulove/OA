@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.thinkgem.jeesite.modules.sys.dao.SysRankDao">
+    
+	<sql id="sysRankColumns">
+		a.id AS "id",
+		a.company_id AS "company.id",
+		a.name ,
+		o.name AS "company.name"
+	</sql>
+	
+	<sql id="sysRankJoins">
+		LEFT JOIN sys_office o ON o.id = a.company_id
+	</sql>
+    
+	<select id="get" resultType="SysRank">
+		SELECT 
+			<include refid="sysRankColumns"/>
+		FROM sys_rank a
+		<include refid="sysRankJoins"/>
+		WHERE a.id = #{id} AND a.del_flag ='0'
+	</select>
+	
+	<select id="findList" resultType="SysRank">
+		SELECT 
+			<include refid="sysRankColumns"/>
+		FROM sys_rank a
+		<include refid="sysRankJoins"/>
+		WHERE a.del_flag = '0' AND o.del_flag = '0'
+		<if test="company != null and company.id != null and company.id != ''">
+			AND (o.id = #{company.id}   OR o.parent_ids LIKE 
+					<if test="dbName == 'oracle'">'%,'||#{company.id}||',%')</if>
+					<if test="dbName == 'mssql'">'%,'+#{company.id}+',%')</if>
+					<if test="dbName == 'mysql'">CONCAT('%,', #{company.id}, ',%'))</if>
+		</if>
+		<if test="name != null and name != ''">
+			AND a.name like 
+					<if test="dbName == 'oracle'">'%'||#{name}||'%'</if>
+					<if test="dbName == 'mssql'">'%'+#{name}+'%'</if>
+					<if test="dbName == 'mysql'">CONCAT('%', #{name}, '%')</if>
+		</if>
+		<!-- 数据范围过滤 -->
+		${sqlMap.dsf}
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy} 
+			</when>
+			<otherwise>
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultType="SysRank">
+		SELECT 
+			<include refid="sysRankColumns"/>
+		FROM sys_rank a
+		<include refid="sysRankJoins"/>
+		WHERE a.del_flag ='0'	and o.del_flag = '0'
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO sys_rank(
+			id,
+			company_id,
+			name
+		) VALUES (
+			#{id},
+			#{company.id},
+			#{name}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE sys_rank SET 	
+			company_id = #{company.id},
+			name = #{name}
+		WHERE id = #{id}
+	</update>
+	
+	<!-- 逻辑删除用户 -->
+	<update id="delete">
+		UPDATE sys_rank SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+	<!-- 根据OfficeId获取职级（树查询职级时用） -->
+	<select id="findsysRankByOfficeId" resultType="SysRank" useCache="true">
+		SELECT
+			a.id, a.name
+		FROM sys_rank a
+		WHERE a.del_flag = #{DEL_FLAG_NORMAL}
+			AND a.company_id = #{company.id}
+		ORDER BY a.name
+	</select>
+	
+</mapper>

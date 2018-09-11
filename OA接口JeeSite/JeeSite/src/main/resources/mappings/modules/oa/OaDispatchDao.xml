@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.thinkgem.jeesite.modules.oa.dao.OaDispatchDao">
+    
+	<sql id="oaDispatchColumns">
+		a.id AS "id",
+		a.oa_doc_approval_id AS "oaDocApprovalId",
+		a.oa_seal_id AS "oaSealId",
+		a.title AS "title",
+		a.doc_number AS "docNumber",
+		a.doc_type AS "docType",
+		a.dispatch_num AS "dispatchNum",
+		a.dispatch_date AS "dispatchDate",
+		a.secret_level AS "secretLevel",
+		a.urgency AS "urgency",
+		a.subject_heading AS "subjectHeading",
+		a.dispatch_copy AS "dispatchCopy",
+		a.file_path AS "filePath",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		a.yuliu1 AS "yuliu1",
+		a.yuliu2 AS "yuliu2",
+		a.yuliu3 AS "yuliu3",
+		a.yuliu4 AS "yuliu4",
+		a.yuliu5 AS "yuliu5"
+	</sql>
+	
+	<sql id="oaDispatchJoins">
+	</sql>
+    
+	<select id="get" resultType="OaDispatch">
+		SELECT 
+			<include refid="oaDispatchColumns"/>
+		FROM oa_dispatch a
+		<include refid="oaDispatchJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="getByDocApprovalId" resultType="OaDispatch">
+		SELECT 
+			<include refid="oaDispatchColumns"/>
+		FROM oa_dispatch a
+		<include refid="oaDispatchJoins"/>
+		WHERE a.oa_doc_approval_id = #{oaDocApprovalId}
+	</select>
+	
+	<select id="findList" resultType="OaDispatch">
+		SELECT 
+			<include refid="oaDispatchColumns"/>
+		FROM oa_dispatch a
+		<include refid="oaDispatchJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="createBy.id != null and createBy.id != ''">
+				and a.create_by = #{createBy.id}
+			</if>
+			<if test="title != null and title != ''">
+				AND a.title LIKE 
+					<if test="dbName == 'oracle'">'%'||#{title}||'%'</if>
+					<if test="dbName == 'mssql'">'%'+#{title}+'%'</if>
+					<if test="dbName == 'mysql'">concat('%',#{title},'%')</if>
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultType="OaDispatch">
+		SELECT 
+			<include refid="oaDispatchColumns"/>
+		FROM oa_dispatch a
+		<include refid="oaDispatchJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO oa_dispatch(
+			id,
+			oa_doc_approval_id,
+			oa_seal_id,
+			title,
+			doc_number,
+			doc_type,
+			dispatch_num,
+			dispatch_date,
+			secret_level,
+			urgency,
+			subject_heading,
+			dispatch_copy,
+			file_path,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag,
+			yuliu1,
+			yuliu2,
+			yuliu3,
+			yuliu4,
+			yuliu5
+		) VALUES (
+			#{id},
+			#{oaDocApprovalId},
+			#{oaSealId},
+			#{title},
+			#{docNumber},
+			#{docType},
+			#{dispatchNum},
+			#{dispatchDate},
+			#{secretLevel},
+			#{urgency},
+			#{subjectHeading},
+			#{dispatchCopy},
+			#{filePath},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag},
+			#{yuliu1},
+			#{yuliu2},
+			#{yuliu3},
+			#{yuliu4},
+			#{yuliu5}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE oa_dispatch SET 	
+			oa_doc_approval_id = #{oaDocApprovalId},
+			oa_seal_id = #{oaSealId},
+			title = #{title},
+			doc_number = #{docNumber},
+			doc_type = #{docType},
+			dispatch_num = #{dispatchNum},
+			dispatch_date = #{dispatchDate},
+			secret_level = #{secretLevel},
+			urgency = #{urgency},
+			subject_heading = #{subjectHeading},
+			dispatch_copy = #{dispatchCopy},
+			file_path = #{filePath},
+			update_by = #{updateBy.id},
+			update_date = #{updateDate},
+			remarks = #{remarks},
+			yuliu1 = #{yuliu1},
+			yuliu2 = #{yuliu2},
+			yuliu3 = #{yuliu3},
+			yuliu4 = #{yuliu4},
+			yuliu5 = #{yuliu5}
+		WHERE id = #{id}
+	</update>
+	
+	<update id="delete">
+		UPDATE oa_dispatch SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+</mapper>

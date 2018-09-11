@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.thinkgem.jeesite.modules.oa.dao.OaApplyProjectorDao">
+    
+	<sql id="oaApplyProjectorColumns">
+		a.id AS "id",
+		a.process_instance_id AS "processInstanceId",
+		a.start_time AS "startTime",
+		a.end_time AS "endTime",
+		a.reason AS "reason",
+		a.hours AS "hours",
+		a.adapter AS "adapter",
+		a.COMPANY AS "company.id",
+		a.apply_time AS "applyTime",
+		a.reality_start_time AS "realityStartTime",
+		a.reality_end_time AS "realityEndTime",
+		a.audit_fir_info AS "auditFirInfo",
+		a.audit_sec_info AS "auditSecInfo",
+		a.audit_thr_info AS "auditThrInfo",
+		a.audit_fir_time AS "auditFirTime",
+		a.audit_thr_time AS "auditThrTime",
+		a.audit_sec_time AS "auditSecTime",
+		a.audit_fir_id AS "auditFirId",
+		a.audit_sec_id AS "auditSecId",
+		a.audit_thr_id AS "auditThrId",
+		a.audit_fstate AS "auditFstate",
+		a.audit_sstate AS "auditSstate",
+		a.audit_tstate AS "auditTstate",
+		a.startend_time AS "startendTime",
+		a.audit_fou_info AS "auditFouInfo",
+		a.audit_fou_id AS "auditFouId",
+		a.audit_fou_state AS "auditFouState",
+		a.audit_fou_time AS "auditFouTime",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		a.department AS "department",
+		a.adapter_id AS "adapterId",
+		a.copyto_id AS "copytoId",
+		a.officeroom_id AS "officeroomId",
+		u.name AS "applyUserid",
+		u.del_flag AS "userDel",
+		a.OFFICE_ROOM_NAME AS "roomName",
+		a.OFFICE_ID AS "office.id",
+		o.name AS "office.name",
+		o.parent_id AS "office.parent.id",
+    	o.parent_ids AS "office.parentIds",
+    	o.del_flag AS "offDel",	
+		c.name AS "company.name",
+		c.parent_id AS "company.parent.id",
+    	c.parent_ids AS "company.parentIds",
+    	c.del_flag AS "comDel",
+		a.yuliu1 AS "yuliu1",
+		a.yuliu2 AS "yuliu2",
+		a.yuliu3 AS "yuliu3",
+		a.yuliu4 AS "yuliu4",
+		a.yuliu5 AS "yuliu5"
+	</sql>
+	
+	<sql id="oaApplyProjectorJoins">
+	LEFT JOIN sys_user u ON a.create_by=u.id
+	LEFT JOIN sys_office c ON c.id = a.COMPANY
+    LEFT JOIN sys_office o ON o.id = a.office_id
+	</sql>
+    
+	<select id="get" resultType="OaApplyProjector">
+		SELECT 
+			<include refid="oaApplyProjectorColumns"/>
+		FROM oa_apply_projector a
+		<include refid="oaApplyProjectorJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="findList" resultType="OaApplyProjector">
+		SELECT 
+			<include refid="oaApplyProjectorColumns"/>
+		FROM oa_apply_projector a
+		<include refid="oaApplyProjectorJoins"/>
+		where
+			a.del_flag = #{DEL_FLAG_NORMAL} and u.del_flag='0' and o.del_flag='0'
+			<if test="company != null and company.id != null and company.id != ''">
+			AND (c.id = #{company.id} OR c.parent_ids LIKE 
+					<if test="dbName == 'oracle'">'%,'||#{company.id}||',%')</if>
+					<if test="dbName == 'mssql'">'%,'+#{company.id}+',%')</if>
+					<if test="dbName == 'mysql'">CONCAT('%,', #{company.id}, ',%'))</if>
+		</if>
+		<if test="office != null and office.id != null and office.id != ''">
+			AND (o.id = #{office.id} OR o.parent_ids LIKE 
+					<if test="dbName == 'oracle'">'%,'||#{office.id}||',%')</if>
+					<if test="dbName == 'mssql'">'%,'+#{office.id}+',%')</if>
+					<if test="dbName == 'mysql'">CONCAT('%,', #{office.id}, ',%'))</if>
+		</if>
+		 <if test="startTime !=null and startTime !=''">
+			and a.create_date <![CDATA[  >=  ]]> #{startTime}
+		</if>
+		<if test="endTime !=null and endTime !=''">
+			and a.create_date<![CDATA[   <=  ]]> #{endTime}
+		</if> 
+	    <if test="adapterId !=null and adapterId !=''">
+			and a.adapter_id =  #{adapterId}
+		</if>
+		<if test="createBy !=null and createBy !=''">
+			and a.create_by = #{createBy.id}
+		</if>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultType="OaApplyProjector">
+		SELECT 
+			<include refid="oaApplyProjectorColumns"/>
+		FROM oa_apply_projector a
+		<include refid="oaApplyProjectorJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO oa_apply_projector(
+			id,
+			process_instance_id,
+			start_time,
+			end_time,
+			reason,
+			hours,
+			adapter,
+			COMPANY,
+			apply_time,
+			reality_start_time,
+			reality_end_time,
+			audit_fir_info,
+			audit_sec_info,
+			audit_thr_info,
+			audit_fir_time,
+			audit_thr_time,
+			audit_sec_time,
+			audit_fir_id,
+			audit_sec_id,
+			audit_thr_id,
+			audit_fstate,
+			audit_sstate,
+			audit_tstate,
+			startend_time,
+			audit_fou_info,
+			audit_fou_id,
+			audit_fou_state,
+			audit_fou_time,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag,
+			department,
+			adapter_id,
+			copyto_id,
+			officeroom_id,
+			OFFICE_ID,
+			yuliu1,
+			yuliu2,
+			yuliu3,
+			yuliu4,
+			yuliu5
+		) VALUES (
+			#{id},
+			#{processInstanceId},
+			#{startTime},
+			#{endTime},
+			#{reason},
+			#{hours},
+			#{adapter},
+			#{company.id},
+			#{applyTime},
+			#{realityStartTime},
+			#{realityEndTime},
+			#{auditFirInfo},
+			#{auditSecInfo},
+			#{auditThrInfo},
+			#{auditFirTime},
+			#{auditThrTime},
+			#{auditSecTime},
+			#{auditFirId},
+			#{auditSecId},
+			#{auditThrId},
+			#{auditFstate},
+			#{auditSstate},
+			#{auditTstate},
+			#{startendTime},
+			#{auditFouInfo},
+			#{auditFouId},
+			#{auditFouState},
+			#{auditFouTime},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag},
+			#{department},
+			#{adapterId},
+			#{copytoId},
+			#{officeroomId},
+			#{office.id},
+			#{yuliu1},
+			#{office.parentIds},
+			#{yuliu3},
+			#{yuliu4},
+			#{yuliu5}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE oa_apply_projector SET 	
+			process_instance_id = #{processInstanceId},
+			start_time = #{startTime},
+			end_time = #{endTime},
+			reason = #{reason},
+			hours = #{hours},
+			adapter = #{adapter},
+			COMPANY = #{company.id},
+			apply_time = #{applyTime},
+			reality_start_time = #{realityStartTime},
+			reality_end_time = #{realityEndTime},
+			audit_fir_info = #{auditFirInfo},
+			audit_sec_info = #{auditSecInfo},
+			audit_thr_info = #{auditThrInfo},
+			audit_fir_time = #{auditFirTime},
+			audit_thr_time = #{auditThrTime},
+			audit_sec_time = #{auditSecTime},
+			audit_fir_id = #{auditFirId},
+			audit_sec_id = #{auditSecId},
+			audit_thr_id = #{auditThrId},
+			audit_fstate = #{auditFstate},
+			audit_sstate = #{auditSstate},
+			audit_tstate = #{auditTstate},
+			startend_time = #{startendTime},
+			audit_fou_info = #{auditFouInfo},
+			audit_fou_id = #{auditFouId},
+			audit_fou_state = #{auditFouState},
+			audit_fou_time = #{auditFouTime},
+			update_by = #{updateBy.id},
+			update_date = #{updateDate},
+			remarks = #{remarks},
+			department = #{department},
+			adapter_id = #{adapterId},
+			copyto_id = #{copytoId},
+			officeroom_id = #{officeroomId},
+			office_id=#{office.id},
+			yuliu1 = #{yuliu1},
+			yuliu2 = #{office.parentIds},
+			yuliu3 = #{yuliu3},
+			yuliu4 = #{yuliu4},
+			yuliu5 = #{yuliu5}
+		WHERE id = #{id}
+	</update>
+	
+	<update id="delete">
+		UPDATE oa_apply_projector SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+</mapper>

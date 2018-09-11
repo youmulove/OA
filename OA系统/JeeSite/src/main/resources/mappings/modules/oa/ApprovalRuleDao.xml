@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.thinkgem.jeesite.modules.oa.dao.ApprovalRuleDao">
+	
+    <resultMap type="com.thinkgem.jeesite.modules.oa.entity.ApprovalRule" id="BaseResultMap">
+    	<id column="approval_id" property="approvalId" jdbcType="VARCHAR" />
+    	<result column="approval_type" property="approvalType" jdbcType="VARCHAR" />
+    	<result column="approval_process" property="approvalProcess" jdbcType="VARCHAR" />
+    	<result column="approval_company" property="approvalCompany" jdbcType="VARCHAR" />
+    	<result column="approval_rank" property="approvalRank" jdbcType="VARCHAR" />
+    	<result column="approval_person" property="approvalPerson" jdbcType="VARCHAR" />
+    	<result column="approval_role" property="approvalRole" jdbcType="VARCHAR" />
+    	<result column="approval_start" property="approvalStart" jdbcType="VARCHAR" />
+    	<result column="approval_end" property="approvalEnd" jdbcType="VARCHAR" />
+    	<result column="approval_yuliu1" property="approvalYuliu1" jdbcType="VARCHAR" />
+    	<result column="approval_yuliu2" property="approvalYuliu2" jdbcType="VARCHAR" />
+    	<result column="approval_yuliu3" property="approvalYuliu3" jdbcType="VARCHAR" />
+    	<result column="approval_yuliu4" property="approvalYuliu4" jdbcType="VARCHAR" />
+    	<result column="approval_yuliu5" property="approvalYuliu5" jdbcType="VARCHAR" />
+    </resultMap>
+	
+	<select id="findApprovalRuleSelective" resultMap="BaseResultMap">
+		select * from oa_approval_rule
+		where 1 = 1 
+		<if test="approvalId != null and approvalId != ''">and approval_id = #{approvalId}</if>
+		<if test="approvalType != null and approvalType != ''">and approval_type = #{approvalType}</if>
+		<if test="approvalProcess != null and approvalProcess != ''">and approval_process = #{approvalProcess}</if>
+		<if test="approvalCompany != null and approvalCompany != ''">and approval_company = #{approvalCompany}</if>
+		<if test="approvalRank != null and approvalRank != ''">and approval_rank = #{approvalRank}</if>
+		<if test="approvalRole != null and approvalRole != ''">and approval_role = #{approvalRole}</if>
+		<if test="approvalStart != null and approvalStart != ''">and approval_start = #{approvalStart}</if>
+		<if test="approvalEnd != null and approvalEnd != ''">and approval_end = #{approvalEnd}</if>
+		ORDER BY APPROVAL_COMPANY,APPROVAL_PROCESS,APPROVAL_START desc,approval_role desc
+	</select>
+	
+	<insert id="insertApprovalRule">
+		insert into oa_approval_rule
+		<trim prefix="(" suffix=")" suffixOverrides="," >
+	      <if test="approvalId != null and approvalId !=''">approval_id,</if>
+	      <if test="approvalType != null and approvalType !=''">approval_type,</if>
+	      <if test="approvalProcess != null and approvalProcess !=''">approval_process,</if>
+	      <if test="approvalCompany != null and approvalCompany !=''">approval_company,</if>
+	      <if test="approvalRank != null and approvalRank !=''">approval_rank,</if>
+	      <if test="approvalPerson != null and approvalPerson !=''">approval_person	,</if>
+	      <if test="approvalRole != null and approvalRole !=''">approval_role,</if>
+	      <if test="approvalStart != null and approvalStart !=''">approval_start,</if>
+	      <if test="approvalEnd != null and approvalEnd !=''">approval_end,</if>
+	      <if test="approvalYuliu1 != null and approvalYuliu1 !=''">approval_yuliu1,</if>
+	      <if test="approvalYuliu2 != null and approvalYuliu2 !=''">approval_yuliu2,</if>
+	      <if test="approvalYuliu3 != null and approvalYuliu3 !=''">approval_yuliu3,</if>
+	      <if test="approvalYuliu4 != null and approvalYuliu4 !=''">approval_yuliu4,</if>
+	      <if test="approvalYuliu5 != null and approvalYuliu5 !=''">approval_yuliu5,</if>
+	     </trim>
+	     <trim prefix="values (" suffix=")" suffixOverrides="," >
+	      <if test="approvalId != null and approvalId !=''">#{approvalId},</if>
+	      <if test="approvalType != null and approvalType !=''">#{approvalType},</if>
+	      <if test="approvalProcess != null and approvalProcess !=''">#{approvalProcess},</if>
+	      <if test="approvalCompany != null and approvalCompany !=''">#{approvalCompany},</if>
+	      <if test="approvalRank != null and approvalRank !=''">#{approvalRank},</if>
+	      <if test="approvalPerson != null and approvalPerson !=''">#{approvalPerson},</if>
+	      <if test="approvalRole != null and approvalRole !=''">#{approvalRole},</if>
+	      <if test="approvalStart != null and approvalStart !=''">#{approvalStart},</if>
+	      <if test="approvalEnd != null and approvalEnd !=''">#{approvalEnd},</if>
+	      <if test="approvalYuliu1 != null and approvalYuliu1 !=''">#{approvalYuliu1},</if>
+	      <if test="approvalYuliu2 != null and approvalYuliu2 !=''">#{approvalYuliu2},</if>
+	      <if test="approvalYuliu3 != null and approvalYuliu3 !=''">#{approvalYuliu3},</if>
+	      <if test="approvalYuliu4 != null and approvalYuliu4 !=''">#{approvalYuliu4},</if>
+	      <if test="approvalYuliu5 != null and approvalYuliu5 !=''">#{approvalYuliu5},</if>
+	     </trim>
+	</insert>
+	
+	<update id="updateApproval">
+		update oa_approval_rule
+		<set>
+	      <if test="approvalType != null and approvalType !=''">approval_type = #{approvalType},</if>
+	      <if test="approvalProcess != null and approvalProcess !=''">approval_process = #{approvalProcess},</if>
+	      <if test="approvalCompany != null and approvalCompany !=''">approval_company = #{approvalCompany},</if>
+	      <if test="approvalRank != null and approvalRank !=''">approval_rank = #{approvalRank},</if>
+	      <if test="approvalPerson != null and approvalPerson !=''">approval_person = #{approvalPerson},</if>
+	      <if test="approvalRole != null and approvalRole !=''">approval_role = #{approvalRole},</if>
+	      <if test="approvalStart != null and approvalStart !=''">approval_start = #{approvalStart},</if>
+	      <if test="approvalEnd != null and approvalEnd !=''">approval_end = #{approvalEnd},</if>
+	      <if test="approvalYuliu1 != null and approvalYuliu1 !=''">approval_yuliu1 = #{approvalYuliu1},</if>
+	      <if test="approvalYuliu2 != null and approvalYuliu2 !=''">approval_yuliu2 = #{approvalYuliu2},</if>
+	      <if test="approvalYuliu3 != null and approvalYuliu3 !=''">approval_yuliu3 = #{approvalYuliu3},</if>
+	      <if test="approvalYuliu4 != null and approvalYuliu4 !=''">approval_yuliu4 = #{approvalYuliu4},</if>
+	      <if test="approvalYuliu5 != null and approvalYuliu5 !=''">approval_yuliu5 = #{approvalYuliu5},</if>
+		</set>
+		<where>
+		<if test="approvalType != null and approvalType != ''">and approval_type = #{approvalType}</if>
+		<if test="approvalCompany != null and approvalCompany != ''">and approval_company = #{approvalCompany}</if>
+		<if test="approvalRole != null and approvalRole != ''">and approval_role = #{approvalRole}</if>
+		<if test="approvalYuliu1 != null and approvalYuliu1 !=''">and approval_yuliu1 = #{approvalYuliu1}</if>
+		</where>
+	</update>
+	
+	<delete id="deleteApprovalById">
+		delete from oa_approval_rule
+		where approval_id = #{approvalId}
+	</delete>
+	
+	<delete id="deleteByApprovalRule">
+		delete from oa_approval_rule
+		<where>
+			<if test="approvalId != null and approvalId !=''">approval_id = #{approvalId}</if>
+			<if test="approvalType != null and approvalType != ''">and approval_type = #{approvalType}</if>
+			<if test="approvalProcess != null and approvalProcess !=''">and approval_process = #{approvalProcess}</if>
+			<if test="approvalYuliu1 != null and approvalYuliu1 !=''">and approval_yuliu1 = #{approvalYuliu1}</if>
+			<if test="approvalCompany != null and approvalCompany !=''">and approval_company = #{approvalCompany}</if>
+			<if test="approvalStart != null and approvalStart !=''">and approval_start = #{approvalStart}</if>
+		</where>
+	</delete>
+	
+</mapper>

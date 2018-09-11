@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.thinkgem.jeesite.modules.oa.dao.OaNotifyMeetingDao">
+    
+	<sql id="oaNotifyMeetingColumns">
+		a.id AS "id",
+		a.type AS "type",
+		a.title AS "title",
+		a.content AS "content",
+		a.files AS "files",
+		a.status AS "status",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		a.start_time AS "startTime",
+		a.end_time AS "endTime",
+		b.read_num,
+	    b.un_read_num,
+	    u.name as "userName",
+		o.name as "createBy.office.name",
+		s.name as "createBy.name"
+	</sql>
+	
+	<sql id="oaNotifyMeetingJoins">
+	 <!-- 查询已读和未读 -->
+	  LEFT JOIN(
+	   SELECT r.meeting_id, 
+                   sum(case when r.read_flag = '1' then 1 else 0 end) read_num,
+                   sum(case when r.read_flag != '1' then 1 else 0 end) un_read_num 
+            FROM oa_notify_meetting_accept r GROUP BY r.meeting_id
+	  )b ON b.meeting_id = a.id
+	  LEFT JOIN sys_user u ON a.create_by=u.id
+	  LEFT JOIN sys_office o ON o.id = u.office_id
+	  LEFT JOIN sys_user s on s.id=a.create_by
+	</sql>
+	<sql id="basiColumns"> id </sql>
+    
+	<select id="get" resultType="OaNotifyMeeting">
+		SELECT 
+			<include refid="oaNotifyMeetingColumns"/>
+		FROM oa_notify_meeting a
+		<include refid="oaNotifyMeetingJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="findList" resultType="OaNotifyMeeting">
+		SELECT 
+			<include refid="oaNotifyMeetingColumns"/>
+			<if test="isSelf">,
+				r.read_flag
+			</if>
+		FROM oa_notify_meeting a
+		<include refid="oaNotifyMeetingJoins"/>
+
+		<!-- 我的预约会议 -->
+		<if test="isSelf">
+			JOIN oa_notify_meetting_accept r ON r.meeting_id = a.id AND r.user_id = #{currentUser.id}
+		</if>
+	where
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="title != null and title != ''">
+				AND a.title LIKE 
+					<if test="dbName == 'oracle'">'%'||#{title}||'%'</if>
+					<if test="dbName == 'mssql'">'%'+#{title}+'%'</if>
+					<if test="dbName == 'mysql'">concat('%',#{title},'%')</if>
+			</if>
+			<if test="type != null and type != ''">
+			AND a.TYPE = #{type}
+		    </if>
+		    <if test="status != null and status != ''">
+			AND a.STATUS = #{status}
+		   </if>
+		   <if test="isSelf">
+			AND a.STATUS = '1'
+		   </if>
+		   <if test="isSelf==false">
+			AND a.create_by=#{currentUser.id} 
+		</if>
+		   <if test="startTime !=null and startTime !=''">
+			and a.start_time <![CDATA[  >=  ]]> #{startTime}
+		</if>
+		<if test="endTime !=null and endTime !=''">
+			and a.end_time<![CDATA[   <=  ]]> #{endTime}
+		</if> 
+    ${sqlMap.dsf}
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<!-- 未读 -->
+	<select id="findNoRead" resultType="OaNotifyMeeting">
+		SELECT 
+			<include refid="oaNotifyMeetingColumns"/>
+			<if test="isSelf">,
+				r.read_flag
+			</if>
+		FROM oa_notify_meeting a
+		<include refid="oaNotifyMeetingJoins"/>
+
+		<!-- 我的预约会议 -->
+		<if test="isSelf">
+			JOIN oa_notify_meetting_accept r ON r.meeting_id = a.id AND r.user_id = #{currentUser.id}
+			AND r.read_flag ='0'
+		</if>
+	where
+			a.del_flag = #{DEL_FLAG_NORMAL}
+			<if test="title != null and title != ''">
+				AND a.title LIKE 
+					<if test="dbName == 'oracle'">'%'||#{title}||'%'</if>
+					<if test="dbName == 'mssql'">'%'+#{title}+'%'</if>
+					<if test="dbName == 'mysql'">concat('%',#{title},'%')</if>
+			</if>
+			<if test="type != null and type != ''">
+			AND a.TYPE = #{type}
+		    </if>
+		    <if test="status != null and status != ''">
+			AND a.STATUS = #{status}
+		   </if>
+		   <if test="isSelf">
+			AND a.STATUS = '1'
+		   </if>
+		   <if test="isSelf==false">
+			AND a.create_by=#{currentUser.id} 
+		</if>
+		   <if test="startTime !=null and startTime !=''">
+			and a.start_time <![CDATA[  >=  ]]> #{startTime}
+		</if>
+		<if test="endTime !=null and endTime !=''">
+			and a.end_time<![CDATA[   <=  ]]> #{endTime}
+		</if> 
+    ${sqlMap.dsf}
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultType="OaNotifyMeeting">
+		SELECT 
+			<include refid="oaNotifyMeetingColumns"/>
+		FROM oa_notify_meeting a
+		<include refid="oaNotifyMeetingJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	
+	<select id="findCount" resultType="Long">
+		SELECT 
+			count(1)
+		FROM oa_notify_meeting a
+		<if test="isSelf">
+			JOIN oa_notify_meetting_accept r ON r.meeting_id = a.id AND r.user_id = #{currentUser.id}
+				<if test="readFlag != null and readFlag != ''">
+					AND r.read_flag = #{readFlag}
+				</if>
+		</if>
+		WHERE a.del_flag = #{DEL_FLAG_NORMAL}
+		<if test="isSelf">
+			AND a.STATUS = '1'
+		</if>
+	</select>
+	<select id="findMeetingId" resultType="OaNotifyMeeting">
+	    SELECT <include refid="basiColumns"/> FROM oa_notify_meeting
+	</select>
+	
+	<insert id="insertWithExcel" parameterType="OaNotifyMeeting">
+		INSERT INTO oa_notify_meeting
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+		<if test="id != null" >
+          ID,
+         </if>
+         <if test="type != null" >
+          TYPE,
+         </if>
+		<if test="title != null" >
+          TITLE,
+         </if>
+         <if test="content != null" >
+          CONTENT,
+         </if>
+          <if test="files != null" >
+          FILES,
+         </if>
+		 <if test="status != null" >
+          STATUS,
+         </if>
+		<if test="createBy.id != null" >
+          CREATE_BY,
+         </if>
+		<if test="create_date != null" >
+          CREATE_DATE,
+         </if>	
+		<if test="updateBy.id != null" >
+          UPDATE_BY,
+         </if>	
+		<if test="update_date != null" >
+         UPDATE_DATE,
+         </if>
+		<if test="remarks != null" >
+         REMARKS,
+         </if>
+         <if test="del_flag != null" >
+         DEL_FLAG,
+         </if>
+		<if test="start_time != null" >
+        START_TIME,
+         </if>
+		<if test="start_time != null" >
+        START_TIME,
+         </if>
+         <if test="end_time != null" >
+        END_TIME
+         </if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=","> 	
+	    <if test="id != null" >
+       #{id},
+       </if>
+       <if test="type != null" >
+       #{type},
+       </if>
+       <if test="title != null" >
+       #{title},
+       </if>
+       <if test="content != null" >
+       #{content},
+       </if>
+        <if test="files != null" >
+       #{files},
+       </if>
+       <if test="status != null" >
+       #{status},
+       </if>
+       <if test="createBy.id != null" >
+       #{createBy.id},
+       </if>
+       <if test="createDate != null" >
+       #{createDate},
+       </if>
+       <if test="updateBy.id != null" >
+       #{updateBy.id},
+       </if>
+       <if test="updateDate != null" >
+       #{updateDate},
+       </if>
+       <if test="remarks != null" >
+       #{remarks},
+       </if>
+       <if test="delFlag != null" >
+       #{delFlag},
+       </if>
+       <if test="startTime != null" >
+       #{startTime},
+       </if>
+       <if test="endTime != null" >
+       #{endTime},
+       </if>
+       </trim>
+	</insert>
+	<insert id="insert" parameterType="OaNotifyMeeting">
+		INSERT INTO oa_notify_meeting(
+			id,
+			type,
+			title,
+			content,
+			files,
+			status,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag,
+			start_time,
+			end_time
+		) VALUES (
+			#{id},
+			#{type},
+			#{title},
+			#{content},
+			#{files},
+			#{status},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag},
+			#{startTime},
+			#{endTime}
+		)
+	</insert>
+
+	
+	<update id="update">
+		UPDATE oa_notify_meeting SET 	
+			type = #{type},
+			title = #{title},
+			content = #{content},
+			files = #{files},
+			status = #{status},
+			update_by = #{updateBy.id},
+			update_date = #{updateDate},
+			remarks = #{remarks},
+			start_time = #{startTime},
+			end_time = #{endTime}
+		WHERE id = #{id}
+	</update>
+	
+	<update id="delete">
+		UPDATE oa_notify_meeting SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+</mapper>

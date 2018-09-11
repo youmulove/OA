@@ -1,0 +1,504 @@
+/**
+ * There are <a href="https://github.com/thinkgem/jeesite">JeeSite</a> code generation
+ */
+package com.thinkgem.jeesite.modules.oa.service;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.activiti.engine.HistoryService;
+import org.activiti.engine.IdentityService;
+import org.activiti.engine.RepositoryService;
+import org.activiti.engine.RuntimeService;
+import org.activiti.engine.TaskService;
+import org.activiti.engine.history.HistoricProcessInstance;
+import org.activiti.engine.runtime.ProcessInstance;
+import org.activiti.engine.task.Task;
+import org.apache.commons.lang3.ArrayUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.thinkgem.jeesite.common.persistence.Page;
+import com.thinkgem.jeesite.common.service.BaseService;
+import com.thinkgem.jeesite.common.utils.Collections3;
+import com.thinkgem.jeesite.common.utils.StringUtils;
+import com.thinkgem.jeesite.modules.act.utils.ActUtils;
+import com.thinkgem.jeesite.modules.act.utils.ListToString;
+import com.thinkgem.jeesite.modules.oa.dao.LeaveDao;
+import com.thinkgem.jeesite.modules.oa.dao.OaLeavedDao;
+import com.thinkgem.jeesite.modules.oa.entity.ApprovalRule;
+import com.thinkgem.jeesite.modules.oa.entity.Leave;
+import com.thinkgem.jeesite.modules.oa.entity.OaLeaved;
+import com.thinkgem.jeesite.modules.sys.entity.User;
+import com.thinkgem.jeesite.modules.sys.service.OfficeService;
+import com.thinkgem.jeesite.modules.sys.service.SystemService;
+import com.thinkgem.jeesite.modules.sys.utils.UserUtils;
+
+/**
+ * 请假Service
+ * 
+ * @author liuj
+ * @version 2013-04-05
+ */
+@Service
+@Transactional(readOnly = true)
+public class LeaveService extends BaseService {
+
+	@Autowired
+	private LeaveDao leaveDao;
+	@Autowired
+	private RuntimeService runtimeService;
+	@Autowired
+	protected TaskService taskService;
+	@Autowired
+	protected HistoryService historyService;
+	@Autowired
+	protected RepositoryService repositoryService;
+	@Autowired
+	private IdentityService identityService;
+	@Autowired
+	private ApprovalRuleService approvalRuleService;
+	@Autowired
+	private SystemService systemService;
+	@Autowired
+	private OaLeavedDao oaLeaveDao;
+	@Autowired
+	private OfficeService officeService;
+
+	/**
+	 * 获取流程详细及工作流参数
+	 * 
+	 * @param id
+	 */
+	@SuppressWarnings("unchecked")
+	public Leave get(String id) {
+		Leave leave = leaveDao.get(id);
+		Map<String, Object> variables = null;
+		HistoricProcessInstance historicProcessInstance = historyService
+				.createHistoricProcessInstanceQuery()
+				.processInstanceId(leave.getProcessInstanceId()).singleResult();
+		if (historicProcessInstance != null) {
+			variables = Collections3.extractToMap(
+					historyService.createHistoricVariableInstanceQuery()
+							.processInstanceId(historicProcessInstance.getId())
+							.list(), "variableName", "value");
+		} else {
+			variables = runtimeService.getVariables(runtimeService
+					.createProcessInstanceQuery()
+					.processInstanceId(leave.getProcessInstanceId()).active()
+					.singleResult().getId());
+		}
+		leave.setVariables(variables);
+		return leave;
+	}
+
+	/**
+	 * 启动流程
+	 * 
+	 * @param entity
+	 */
+	@Transactional(readOnly = false)
+	public void save(Leave leave, Map<String, Object> variables) {
+
+		// 保存业务数据
+		if (StringUtils.isBlank(leave.getId())) {
+			leave.preInsert();
+			leaveDao.insert(leave);
+		} else {
+			leave.preUpdate();
+			leaveDao.update(leave);
+		}
+		logger.debug("save entity: {}", leave);
+
+		// 用来设置启动流程的人员ID，引擎会自动把用户ID保存到activiti:initiator中
+		identityService.setAuthenticatedUserId(leave.getCurrentUser().getId());
+		// 启动流程
+		String businessKey = leave.getId().toString();
+		variables.put("type", "leave");
+		variables.put("busId", businessKey);
+		String bKey = "oa_leave" + ":" + businessKey;
+		variables.put("applyUserId", UserUtils.getUser().getId());
+		variables.put("userParam", leave.getDay());
+		variables.put("sysParam", 1);
+		variables.put("sysParam2", 2);
+		variables.put("userRole", "user");
+		variables.put("user", "user");
+		variables.put("oneLevelApproval", "18037454958");// 查询出与申请人在同一个部门的上级
+		variables.put("twoLevelApproval", "1234");
+		variables.put("threeLevelApproval", "321");
+		variables.put("leave", leave);
+		ProcessInstance processInstance = runtimeService
+				.startProcessInstanceByKey(ActUtils.PD_LEAVE[0], bKey,
+						variables);
+		leave.setProcessInstance(processInstance);
+		// 更新流程实例ID
+		leave.setProcessInstanceId(processInstance.getId());
+		leaveDao.updateProcessInstanceId(leave);
+
+		List<Task> list = taskService.createTaskQuery()
+				.taskAssignee(UserUtils.getUser().getId())
+				.orderByTaskCreateTime().desc().list();
+		taskService.complete(list.get(0).getId());
+
+		logger.debug(
+				"start process of {key={}, bkey={}, pid={}, variables={}}",
+				new Object[] { ActUtils.PD_LEAVE[0], businessKey,
+						processInstance.getId(), variables });
+
+	}
+
+	/**
+	 * 查询待办任务
+	 * 
+	 * @param userId
+	 *            用户ID
+	 * @return
+	 */
+	public List<Leave> findTodoTasks(String userId) {
+
+		List<Leave> results = new ArrayList<Leave>();
+		List<Task> tasks = new ArrayList<Task>();
+		// 根据当前人的ID查询
+		// List<Task> todoList =
+		// taskService.createTaskQuery().processDefinitionKey(ActUtils.PD_LEAVE[0]).taskAssignee(userId).active().orderByTaskPriority().desc().orderByTaskCreateTime().desc().list();
+		// 根据当前人未签收的任务
+		// List<Task> unsignedTasks =
+		// taskService.createTaskQuery().processDefinitionKey(ActUtils.PD_LEAVE[0]).taskCandidateUser(userId).active().orderByTaskPriority().desc().orderByTaskCreateTime().desc().list();
+
+		List<Task> todoList = taskService.createTaskQuery()
+				.taskAssignee(userId).list();
+		List<Task> unsignedTasks = taskService.createTaskQuery()
+				.taskCandidateUser(userId).list();
+		// 合并
+		tasks.addAll(todoList);
+		tasks.addAll(unsignedTasks);
+		// 根据流程的业务ID查询实体并关联
+		for (Task task : tasks) {
+			/*
+			 * String processInstanceId = task.getProcessInstanceId();
+			 * ProcessInstance processInstance =
+			 * runtimeService.createProcessInstanceQuery
+			 * ().processInstanceId(processInstanceId).active().singleResult();
+			 * String businessKey = processInstance.getBusinessKey(); Leave
+			 * leave = leaveDao.get(businessKey); leave.setTask(task);
+			 * leave.setProcessInstance(processInstance);
+			 * leave.setProcessDefinition
+			 * (repositoryService.createProcessDefinitionQuery
+			 * ().processDefinitionId
+			 * ((processInstance.getProcessDefinitionId())).singleResult());
+			 * results.add(leave);
+			 */
+			Map<String, Object> variables = taskService.getVariables(task
+					.getId());
+			Leave leave = (Leave) variables.get("leave");
+			results.add(leave);
+		}
+		return results;
+	}
+
+	public Page<Leave> find(Page<Leave> page, Leave leave) {
+
+		leave.getSqlMap().put("dsf",
+				dataScopeFilter(leave.getCurrentUser(), "o", "u"));
+
+		leave.setPage(page);
+		page.setList(leaveDao.findList(leave));
+
+		for (Leave item : page.getList()) {
+			String processInstanceId = item.getProcessInstanceId();
+			Task task = taskService.createTaskQuery()
+					.processInstanceId(processInstanceId).active()
+					.singleResult();
+			item.setTask(task);
+			HistoricProcessInstance historicProcessInstance = historyService
+					.createHistoricProcessInstanceQuery()
+					.processInstanceId(processInstanceId).singleResult();
+			if (historicProcessInstance != null) {
+				item.setHistoricProcessInstance(historicProcessInstance);
+				item.setProcessDefinition(repositoryService
+						.createProcessDefinitionQuery()
+						.processDefinitionId(
+								historicProcessInstance
+										.getProcessDefinitionId())
+						.singleResult());
+			} else {
+				ProcessInstance processInstance = runtimeService
+						.createProcessInstanceQuery()
+						.processInstanceId(processInstanceId).active()
+						.singleResult();
+				if (processInstance != null) {
+					item.setProcessInstance(processInstance);
+					item.setProcessDefinition(repositoryService
+							.createProcessDefinitionQuery()
+							.processDefinitionId(
+									processInstance.getProcessDefinitionId())
+							.singleResult());
+				}
+			}
+		}
+		return page;
+	}
+
+	// -----------------------------------------------------------------------------------------------------------------
+	/**
+	 * 发起请假流程
+	 * 
+	 * @param leave
+	 */
+	public void leaveApply(OaLeaved leave, String oaNotifyRecordIds,
+			String sysapp1, String sysapp2, String sysapp3, String sysapp4) {
+		// 查询本公司请假类型的规则列表
+		User user = UserUtils.getUser();
+		ApprovalRule appr = new ApprovalRule();
+		appr.setApprovalCompany(user.getCompany().getId());
+		appr.setApprovalType("leave");
+		List<ApprovalRule> appList = approvalRuleService
+				.findApprovalRuleSelective(appr);
+		String processDefinitionKey = "";
+		String str1 = "";
+		String str2 = "";
+		String str3 = "";
+		String str4 = "";
+		if(appList.get(0).getApprovalProcess().equals("0")){
+		if(sysapp1!=null&&!sysapp1.equals("")){
+			str1=sysapp1;
+			leave.setAuditFirId(sysapp1);
+			processDefinitionKey="1";	
+		}
+       if(sysapp2!=null&&!sysapp2.equals("")){
+    	   str2=sysapp2;
+    	   leave.setAuditSecId(sysapp2);
+    	   processDefinitionKey="2";
+			}
+       if(sysapp3!=null&&!sysapp3.equals("")){
+    	   str3=sysapp3;
+    	   leave.setAuditThrId(sysapp3);
+    	   processDefinitionKey="3";
+        }
+			
+       if(sysapp4!=null&&!sysapp4.equals("")){
+    	   str4=sysapp4;
+    	   leave.setAuditFouId(sysapp4);
+    	   processDefinitionKey="4";
+         }	
+			
+		}else{
+		for (ApprovalRule app : appList) {
+			if ("".equals(processDefinitionKey)) {
+				// 根据请假天数判断需要使用的请假流程图
+				if ((Double.parseDouble(leave.getHours())) > (Double
+						.parseDouble(app.getApprovalStart()))
+						&& (Double.parseDouble(leave.getHours())) <= (Double
+								.parseDouble(app.getApprovalEnd()))) {
+					processDefinitionKey = app.getApprovalProcess();
+					appr.setApprovalProcess(processDefinitionKey);
+				}
+			}
+		}
+		List<ApprovalRule> appList2 = approvalRuleService
+				.findApprovalRuleSelective(appr);
+		for (ApprovalRule app : appList2) {
+			// 判断是几级审批
+			if (app.getApprovalRole().equals("1")) {
+				// 判断是根据职级确定审批人还是指定具体人
+				if (app.getApprovalRank() != null
+						&& !app.getApprovalRank().equals("")) {
+					// ***********************
+
+					if (sysapp1 != null) {
+						User user2 = systemService.getUser(sysapp1);
+						str1 = user2.getId();
+					} else {
+						List<User> list = systemService
+								.findUserBysystrankId(app.getApprovalRank());
+						ArrayList<String> list2 = new ArrayList<String>();
+						ArrayList<String> list3 = new ArrayList<String>();
+						for (User u : list) {
+							list2.add(u.getId());
+							list3.add(u.getId());
+						}
+						str1 = ListToString.listToString(list2);
+					}
+
+				} else {
+					// str1 = app.getApprovalPerson();
+					str1 = returnStr(app.getApprovalPerson().split(","));
+				}
+				leave.setAuditFirId(str1);// 设置第一审批人
+			} else if (app.getApprovalRole().equals("2")) {
+				if (app.getApprovalRank() != null
+						&& !app.getApprovalRank().equals("")) {
+					// ***********************
+					if (sysapp2 != null) {
+						User user2 = systemService.getUser(sysapp2);
+						str2 = user2.getId();
+					} else {
+						List<User> list = systemService
+								.findUserBysystrankId(app.getApprovalRank());
+						ArrayList<String> list2 = new ArrayList<String>();
+						for (User u : list) {
+							list2.add(u.getId());
+						}
+						str2 = ListToString.listToString(list2);
+					}
+				} else {
+					// str2 = app.getApprovalPerson();
+					str2 = returnStr(app.getApprovalPerson().split(","));
+				}
+				leave.setAuditSecId(str2);// 第二审批人
+			} else if (app.getApprovalRole().equals("3")) {
+				if (app.getApprovalRank() != null
+						&& !app.getApprovalRank().equals("")) {
+					// ***********************
+					if (sysapp3 != null) {
+						User user2 = systemService.getUser(sysapp3);
+						str3 = user2.getId();
+					} else {
+						List<User> list = systemService
+								.findUserBysystrankId(app.getApprovalRank());
+						ArrayList<String> list2 = new ArrayList<String>();
+						for (User u : list) {
+							list2.add(u.getId());
+						}
+						str3 = ListToString.listToString(list2);
+					}
+				} else {
+					// str3 = app.getApprovalPerson();
+					str3 = returnStr(app.getApprovalPerson().split(","));
+				}
+				leave.setAuditThrId(str3);// 第三审批人
+			} else if (app.getApprovalRole().equals("4")) {
+				if (app.getApprovalRank() != null
+						&& !app.getApprovalRank().equals("")) {
+					// ***********************
+					if (sysapp4 != null) {
+						User user2 = systemService.getUser(sysapp4);
+						str4 = user2.getId();
+					} else {
+						List<User> list = systemService
+								.findUserBysystrankId(app.getApprovalRank());
+						ArrayList<String> list2 = new ArrayList<String>();
+						for (User u : list) {
+							list2.add(u.getId());
+						}
+						str4 = ListToString.listToString(list2);
+					}
+				} else {
+					// str4 = app.getApprovalPerson();
+					str4 = returnStr(app.getApprovalPerson().split(","));
+				}
+				leave.setAuditFouId(str4);
+			}
+		}
+		}
+		leave.setId(UUID.randomUUID().toString().replace("-", ""));
+		leave.setCreateBy(user);
+		leave.setCreateDate(new Date());
+		leave.setCopytoId(oaNotifyRecordIds);
+		leave.setApplyTime(new Date());
+		leave.setUpdateBy(user);
+		leave.setUpdateDate(new Date());
+		leave.setCompany(UserUtils.getUser().getCompany());
+		// leave.setOffice(UserUtils.getUser().getOffice());
+		leave.setOffice(officeService.findAllDeptByUser(user));
+		leave.setApplyName(user.getName());
+
+		HashMap<String, Object> variables = new HashMap<String, Object>();
+		variables.put("applyUserId", user.getId());// 设置流程发起人
+		variables.put("type", "leave");
+
+		// 存入流程启动人
+		identityService.setAuthenticatedUserId(user.getId());
+		// 启动流程
+		if (processDefinitionKey.equals("1")) {
+			processDefinitionKey = "oneLevel";
+		}
+		if (processDefinitionKey.equals("2")) {
+			processDefinitionKey = "twoLevel";
+		}
+		if (processDefinitionKey.equals("3")) {
+			processDefinitionKey = "threeLevel";
+		}
+		if (processDefinitionKey.equals("4")) {
+			processDefinitionKey = "fourLevel";
+		}
+		ProcessInstance processInstance = runtimeService
+				.startProcessInstanceByKey(processDefinitionKey, variables);
+		leave.setProcessInstanceId(processInstance.getId());
+		// 存入申请人角色信息
+		if (Arrays.asList(str1.split(",")).contains(user.getId())) {
+			variables.put("role", "one");
+		} else if (Arrays.asList(str2.split(",")).contains(user.getId())) {
+			variables.put("role", "two");
+		} else if (Arrays.asList(str3.split(",")).contains(user.getId())) {
+			variables.put("role", "three");
+		} else if (Arrays.asList(str4.split(",")).contains(user.getId())) {
+			variables.put("role", "four");
+		} else {
+			variables.put("role", "user");
+		}
+		variables.put("applyName", user.getName());
+		variables.put("oneLevelApproval", str1);
+		variables.put("twoLevelApproval", str2);
+		variables.put("threeLevelApproval", str3);
+		variables.put("fourLevelApproval", str4);
+		variables.put("copytoId", oaNotifyRecordIds);
+		variables.put("leave", leave);
+		variables.put("title", UserUtils.getUser().getName() + "的请假申请");
+		variables.put("nowposition", "run");
+
+		// 完成申请
+		List<Task> list = taskService.createTaskQuery()
+				.taskAssignee(UserUtils.getUser().getId())
+				.orderByTaskCreateTime().desc().list();
+		taskService.complete(list.get(0).getId(), variables);
+
+		leave.setIsNewRecord(true);
+		oaLeaveDao.insert(leave);// 往请假表插入数据
+	}
+
+	/***
+	 * 调整请假信息
+	 */
+	public Leave modifyLeave(String taskId) {
+		return (Leave) taskService.getVariable(taskId, "leave");
+	}
+
+	/**
+	 * 工具方法
+	 */
+	public String returnStr(String[] split) {
+		User user = UserUtils.getUser();
+		StringBuffer sb = new StringBuffer();
+		for (int i = 0; i < split.length; i++) {
+			// 根据申请人所在部门和公司展示审批人 查询申请人的部门父ids和审批人的部门id
+			User u = systemService.getUser(split[i]);
+			if(u==null){
+				continue;
+			}
+			if ((user.getOffice().getId()).equals(u.getOffice().getId())) {
+				sb.append(split[i] + ",");
+			} else {
+				String parentIds = officeService.findAllDeptByUser(user)
+						.getParentIds();
+				if (ArrayUtils.contains(parentIds.split(","), u.getOffice()
+						.getId())) {
+					sb.append(split[i] + ",");
+				}
+			}
+		}
+		if ("".equals(sb.toString()) || (sb.toString()) == null) {
+			for (int i = 0; i < split.length; i++) {
+				sb.append(split[i] + ",");
+			}
+		}
+		return sb.toString();
+	}
+
+}

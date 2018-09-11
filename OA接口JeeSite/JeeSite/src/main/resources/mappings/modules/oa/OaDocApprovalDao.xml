@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.thinkgem.jeesite.modules.oa.dao.OaDocApprovalDao">
+    
+	<sql id="oaDocApprovalColumns">
+		a.id AS "id",
+		a.oa_dispatch_id AS "oaDispatchId",
+		a.ng_id AS "ngId",
+		a.ng_name AS "ngName",
+		a.sg_id AS "sgId",
+		a.sg_name AS "sgName",
+		a.sg_option AS "sgOption",
+		a.sg_flag AS "sgFlag",
+		a.hg_id AS "hgId",
+		a.hg_name AS "hgName",
+		a.hg_option AS "hgOption",
+		a.hg_flag AS "hgFlag",
+		a.sign_id AS "signId",
+		a.sign_name AS "signName",
+		a.sign_option AS "signOption",
+		a.sign_flag AS "signFlag",
+		a.office_approval_id AS "officeApprovalId",
+		a.office_approval_name AS "officeApprovalName",
+		a.office_option AS "officeOption",
+		a.office_flag AS "officeFlag",
+		a.qf_id AS "qfId",
+		a.qf_name AS "qfName",
+		a.qf_option AS "qfOption",
+		a.qf_flag AS "qfFlag",
+		a.check_id AS "checkId",
+		a.check_name AS "checkName",
+		a.check_option AS "checkOption",
+		a.check_flag AS "checkFlag",
+		a.use_seal_id AS "useSealId",
+		a.use_seal_name AS "useSealName",
+		a.use_seal_option AS "useSealOption",
+		a.use_seal_flag AS "useSealFlag",
+		a.create_by AS "createBy.id",
+		a.create_date AS "createDate",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag",
+		a.yuliu1 AS "yuliu1",
+		a.yuliu2 AS "yuliu2",
+		a.yuliu3 AS "yuliu3",
+		a.yuliu4 AS "yuliu4",
+		a.yuliu5 AS "yuliu5",
+		a.end_flag AS "endFlag",
+		a.process_instance_id AS "processInstanceId",
+		b.oa_seal_id AS "oaSealId",
+		b.title AS "title",
+		b.doc_number AS "docNumber",
+		b.doc_type AS "docType",
+		b.dispatch_num AS "dispatchNum",
+		b.dispatch_date AS "dispatchDate",
+		b.secret_level AS "secretLevel",
+		b.urgency AS "urgency",
+		b.subject_heading AS "subjectHeading",
+		b.dispatch_copy AS "dispatchCopy",
+		b.file_path AS "filePath",
+		b.create_by AS "createBy.id2",
+		b.create_date AS "createDate2",
+		b.update_by AS "updateBy.id2",
+		b.update_date AS "updateDate2",
+		b.remarks AS "remarks2",
+		b.del_flag AS "delFlag2",
+		b.yuliu1 AS "yuliu12",
+		b.yuliu2 AS "yuliu22",
+		b.yuliu3 AS "yuliu32",
+		b.yuliu4 AS "yuliu42",
+		b.yuliu5 AS "yuliu52"
+	</sql>
+	
+	<sql id="oaDocApprovalJoins">
+		left join oa_dispatch b
+		on a.oa_dispatch_id = b.id
+	</sql>
+    
+	<select id="get" resultType="OaDocApproval">
+		SELECT 
+			<include refid="oaDocApprovalColumns"/>
+		FROM oa_doc_approval a
+		<include refid="oaDocApprovalJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<!-- 根据发文单查询 -->
+	<select id="getByDispatchId" resultType="OaDocApproval">
+		SELECT 
+			<include refid="oaDocApprovalColumns"/>
+		FROM oa_doc_approval a
+		<include refid="oaDocApprovalJoins"/>
+		WHERE a.oa_dispatch_id = #{oaDispatchId}
+	</select>
+	
+	<select id="findList" resultType="OaDocApproval">
+		SELECT 
+			<include refid="oaDocApprovalColumns"/>
+		FROM oa_doc_approval a
+		<include refid="oaDocApprovalJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<select id="findAllList" resultType="OaDocApproval">
+		SELECT 
+			<include refid="oaDocApprovalColumns"/>
+		FROM oa_doc_approval a
+		<include refid="oaDocApprovalJoins"/>
+		<where>
+			a.del_flag = #{DEL_FLAG_NORMAL}
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.update_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO oa_doc_approval(
+			id,
+			oa_dispatch_id,
+			ng_id,
+			ng_name,
+			sg_id,
+			sg_name,
+			sg_option,
+			sg_flag,
+			hg_id,
+			hg_name,
+			hg_option,
+			hg_flag,
+			sign_id,
+			sign_name,
+			sign_option,
+			sign_flag,
+			office_approval_id,
+			office_approval_name,
+			office_option,
+			office_flag,
+			qf_id,
+			qf_name,
+			qf_option,
+			qf_flag,
+			check_id,
+			check_name,
+			check_option,
+			check_flag,
+			use_seal_id,
+			use_seal_name,
+			use_seal_option,
+			use_seal_flag,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag,
+			yuliu1,
+			yuliu2,
+			yuliu3,
+			yuliu4,
+			yuliu5,
+			end_flag,
+			process_instance_id
+		) VALUES (
+			#{id},
+			#{oaDispatchId},
+			#{ngId},
+			#{ngName},
+			#{sgId},
+			#{sgName},
+			#{sgOption},
+			#{sgFlag},
+			#{hgId},
+			#{hgName},
+			#{hgOption},
+			#{hgFlag},
+			#{signId},
+			#{signName},
+			#{signOption},
+			#{signFlag},
+			#{officeApprovalId},
+			#{officeApprovalName},
+			#{officeOption},
+			#{officeFlag},
+			#{qfId},
+			#{qfName},
+			#{qfOption},
+			#{qfFlag},
+			#{checkId},
+			#{checkName},
+			#{checkOption},
+			#{checkFlag},
+			#{useSealId},
+			#{useSealName},
+			#{useSealOption},
+			#{useSealFlag},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag},
+			#{yuliu1},
+			#{yuliu2},
+			#{yuliu3},
+			#{yuliu4},
+			#{yuliu5},
+			#{endFlag},
+			#{processInstanceId}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE oa_doc_approval SET 	
+			oa_dispatch_id = #{oaDispatchId},
+			ng_id = #{ngId},
+			ng_name = #{ngName},
+			sg_id = #{sgId},
+			sg_name = #{sgName},
+			sg_option = #{sgOption},
+			sg_flag = #{sgFlag},
+			hg_id = #{hgId},
+			hg_name = #{hgName},
+			hg_option = #{hgOption},
+			hg_flag = #{hgFlag},
+			sign_id = #{signId},
+			sign_name = #{signName},
+			sign_option = #{signOption},
+			sign_flag = #{signFlag},
+			office_approval_id = #{officeApprovalId},
+			office_approval_name = #{officeApprovalName},
+			office_option = #{officeOption},
+			office_flag = #{officeFlag},
+			qf_id = #{qfId},
+			qf_name = #{qfName},
+			qf_option = #{qfOption},
+			qf_flag = #{qfFlag},
+			check_id = #{checkId},
+			check_name = #{checkName},
+			check_option = #{checkOption},
+			check_flag = #{checkFlag},
+			use_seal_id = #{useSealId},
+			use_seal_name = #{useSealName},
+			use_seal_option = #{useSealOption},
+			use_seal_flag = #{useSealFlag},
+			update_by = #{updateBy.id},
+			update_date = #{updateDate},
+			remarks = #{remarks},
+			yuliu1 = #{yuliu1},
+			yuliu2 = #{yuliu2},
+			yuliu3 = #{yuliu3},
+			yuliu4 = #{yuliu4},
+			yuliu5 = #{yuliu5},
+			end_flag = #{endFlag},
+			process_instance_id = #{processInstanceId}
+		WHERE id = #{id}
+	</update>
+	
+	<update id="delete">
+		UPDATE oa_doc_approval SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+</mapper>

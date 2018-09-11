@@ -1,0 +1,126 @@
+;;; 
+Export: Release 12.1.0.2.0 - Production on 星期六 3月 31 10:20:32 2018
+
+Copyright (c) 1982, 2014, Oracle and/or its affiliates.  All rights reserved.
+;;; 
+连接到: Oracle Database 12c Enterprise Edition Release 12.1.0.2.0 - 64bit Production
+With the Partitioning, OLAP, Advanced Analytics and Real Application Testing options
+启动 "ZIHOA"."SYS_EXPORT_SCHEMA_01":  ZIHOA/********@ORCL DIRECTORY=DATA_PUMP_DIR dumpfile=ZIHOA.DMP schemas=ZIHOA logfile=ZIHOA.LOG 
+正在使用 BLOCKS 方法进行估计...
+处理对象类型 SCHEMA_EXPORT/TABLE/TABLE_DATA
+使用 BLOCKS 方法的总估计: 241.7 MB
+处理对象类型 SCHEMA_EXPORT/USER
+处理对象类型 SCHEMA_EXPORT/SYSTEM_GRANT
+处理对象类型 SCHEMA_EXPORT/ROLE_GRANT
+处理对象类型 SCHEMA_EXPORT/DEFAULT_ROLE
+处理对象类型 SCHEMA_EXPORT/PRE_SCHEMA/PROCACT_SCHEMA
+处理对象类型 SCHEMA_EXPORT/TYPE/TYPE_SPEC
+处理对象类型 SCHEMA_EXPORT/SEQUENCE/SEQUENCE
+处理对象类型 SCHEMA_EXPORT/TABLE/TABLE
+处理对象类型 SCHEMA_EXPORT/TABLE/COMMENT
+处理对象类型 SCHEMA_EXPORT/PACKAGE/PACKAGE_SPEC
+处理对象类型 SCHEMA_EXPORT/PACKAGE/COMPILE_PACKAGE/PACKAGE_SPEC/ALTER_PACKAGE_SPEC
+处理对象类型 SCHEMA_EXPORT/VIEW/VIEW
+处理对象类型 SCHEMA_EXPORT/VIEW/COMMENT
+处理对象类型 SCHEMA_EXPORT/PACKAGE/PACKAGE_BODY
+处理对象类型 SCHEMA_EXPORT/TABLE/INDEX/INDEX
+处理对象类型 SCHEMA_EXPORT/TABLE/CONSTRAINT/CONSTRAINT
+处理对象类型 SCHEMA_EXPORT/TABLE/INDEX/STATISTICS/INDEX_STATISTICS
+处理对象类型 SCHEMA_EXPORT/TABLE/CONSTRAINT/REF_CONSTRAINT
+处理对象类型 SCHEMA_EXPORT/TABLE/TRIGGER
+处理对象类型 SCHEMA_EXPORT/TABLE/STATISTICS/TABLE_STATISTICS
+处理对象类型 SCHEMA_EXPORT/STATISTICS/MARKER
+. . 导出了 "ZIHOA"."SYS_LOG"                           16.78 MB   24715 行
+. . 导出了 "ZIHOA"."IIM_MAIL"                          20.97 MB     160 行
+. . 导出了 "ZIHOA"."ACT_GE_BYTEARRAY"                  3.486 MB     976 行
+. . 导出了 "ZIHOA"."ACT_HI_DETAIL"                     1.035 MB    2922 行
+. . 导出了 "ZIHOA"."CMS_ARTICLE_DATA"                  45.11 KB      78 行
+. . 导出了 "ZIHOA"."OA_NOTIFY_RECORD"                  443.4 KB    4356 行
+. . 导出了 "ZIHOA"."ACT_HI_ACTINST"                    254.7 KB     588 行
+. . 导出了 "ZIHOA"."ACT_HI_VARINST"                    402.2 KB    1384 行
+. . 导出了 "ZIHOA"."ACT_RU_VARIABLE"                   110.3 KB     383 行
+. . 导出了 "ZIHOA"."CMS_ARTICLE"                       22.14 KB      78 行
+. . 导出了 "ZIHOA"."CMS_CATEGORY"                      23.97 KB      62 行
+. . 导出了 "ZIHOA"."CMS_SITE"                          12.32 KB       2 行
+. . 导出了 "ZIHOA"."IIM_MAIL_BOX"                      233.5 KB    1560 行
+. . 导出了 "ZIHOA"."IIM_MAIL_COMPOSE"                  129.5 KB     822 行
+. . 导出了 "ZIHOA"."OA_NOTIFY_MEETTING_ACCEPT"         323.1 KB    2881 行
+. . 导出了 "ZIHOA"."OA_NOTIFY_TASK_ACCEPT"             257.6 KB    2324 行
+. . 导出了 "ZIHOA"."ACT_GE_PROPERTY"                   6.062 KB       3 行
+. . 导出了 "ZIHOA"."ACT_HI_IDENTITYLINK"               83.98 KB     375 行
+. . 导出了 "ZIHOA"."ACT_HI_PROCINST"                   44.35 KB     107 行
+. . 导出了 "ZIHOA"."ACT_HI_TASKINST"                   117.7 KB     259 行
+. . 导出了 "ZIHOA"."ACT_RE_DEPLOYMENT"                 7.335 KB       6 行
+. . 导出了 "ZIHOA"."ACT_RE_MODEL"                          0 KB       0 行
+. . 导出了 "ZIHOA"."ACT_RE_PROCDEF"                    12.47 KB       6 行
+. . 导出了 "ZIHOA"."ACT_RU_EXECUTION"                  19.93 KB      30 行
+. . 导出了 "ZIHOA"."ACT_RU_IDENTITYLINK"               28.07 KB      95 行
+. . 导出了 "ZIHOA"."ACT_RU_TASK"                       23.42 KB      30 行
+. . 导出了 "ZIHOA"."CMS_COMMENT"                       9.570 KB       2 行
+. . 导出了 "ZIHOA"."CMS_GUESTBOOK"                     10.35 KB       1 行
+. . 导出了 "ZIHOA"."CMS_LINK"                          11.65 KB      13 行
+. . 导出了 "ZIHOA"."GEN_SCHEME"                        16.35 KB      28 行
+. . 导出了 "ZIHOA"."GEN_TABLE"                         14.89 KB      36 行
+. . 导出了 "ZIHOA"."GEN_TABLE_COLUMN"                  110.5 KB     505 行
+. . 导出了 "ZIHOA"."IIM_CHAT_HISTORY"                  7.390 KB       3 行
+. . 导出了 "ZIHOA"."OA_APPLY"                          38.82 KB      33 行
+. . 导出了 "ZIHOA"."OA_APPLY_OFFICEROOM"               49.76 KB      61 行
+. . 导出了 "ZIHOA"."OA_APPLY_PROJECTOR"                   30 KB      16 行
+. . 导出了 "ZIHOA"."OA_APPROVAL_RULE"                  13.10 KB      14 行
+. . 导出了 "ZIHOA"."OA_DISPATCH"                       23.03 KB      26 行
+. . 导出了 "ZIHOA"."OA_DOC_APPROVAL"                   35.55 KB      25 行
+. . 导出了 "ZIHOA"."OA_DOC_TEMPLETE"                   11.68 KB       3 行
+. . 导出了 "ZIHOA"."OA_LEAVE"                              0 KB       0 行
+. . 导出了 "ZIHOA"."OA_LEAVED"                         55.52 KB      85 行
+. . 导出了 "ZIHOA"."OA_MSG_RECORD"                     8.671 KB       1 行
+. . 导出了 "ZIHOA"."OA_NOTICE"                         14.09 KB      32 行
+. . 导出了 "ZIHOA"."OA_NOTICE_RECORD"                  144.0 KB    1335 行
+. . 导出了 "ZIHOA"."OA_NOTIFY"                         58.61 KB     188 行
+. . 导出了 "ZIHOA"."OA_NOTIFY_MEETING"                 37.42 KB      93 行
+. . 导出了 "ZIHOA"."OA_NOTIFY_TASK"                    37.85 KB      88 行
+. . 导出了 "ZIHOA"."OA_OFFICEROOM"                     11.55 KB       5 行
+. . 导出了 "ZIHOA"."OA_OVERTIME"                       43.78 KB      30 行
+. . 导出了 "ZIHOA"."OA_PROJECTOR"                      11.52 KB       5 行
+. . 导出了 "ZIHOA"."OA_SEAL"                           12.57 KB       4 行
+. . 导出了 "ZIHOA"."OA_SEAL_RECORD"                       19 KB      48 行
+. . 导出了 "ZIHOA"."OA_TEST_AUDIT"                     15.78 KB       2 行
+. . 导出了 "ZIHOA"."OA_TRAVEL_RECORD"                  14.78 KB      20 行
+. . 导出了 "ZIHOA"."SYS_ADMIN"                         10.58 KB       2 行
+. . 导出了 "ZIHOA"."SYS_AREA"                          35.32 KB     368 行
+. . 导出了 "ZIHOA"."SYS_DICT"                          21.14 KB     137 行
+. . 导出了 "ZIHOA"."SYS_MENU"                          30.02 KB     159 行
+. . 导出了 "ZIHOA"."SYS_OFFICE"                        78.36 KB     375 行
+. . 导出了 "ZIHOA"."SYS_RANK"                          6.992 KB      13 行
+. . 导出了 "ZIHOA"."SYS_ROLE"                          12.07 KB      14 行
+. . 导出了 "ZIHOA"."SYS_ROLE_MENU"                     78.62 KB    1805 行
+. . 导出了 "ZIHOA"."SYS_ROLE_OFFICE"                   12.92 KB     198 行
+. . 导出了 "ZIHOA"."SYS_USER"                          202.4 KB     669 行
+. . 导出了 "ZIHOA"."SYS_USER_ROLE"                     38.82 KB     864 行
+. . 导出了 "ZIHOA"."TEST_DATA"                         10.50 KB       2 行
+. . 导出了 "ZIHOA"."TEST_TREE"                         10.44 KB       6 行
+. . 导出了 "ZIHOA"."ACT_EVT_LOG"                           0 KB       0 行
+. . 导出了 "ZIHOA"."ACT_HI_ATTACHMENT"                     0 KB       0 行
+. . 导出了 "ZIHOA"."ACT_HI_COMMENT"                        0 KB       0 行
+. . 导出了 "ZIHOA"."ACT_ID_GROUP"                          0 KB       0 行
+. . 导出了 "ZIHOA"."ACT_ID_INFO"                           0 KB       0 行
+. . 导出了 "ZIHOA"."ACT_ID_MEMBERSHIP"                     0 KB       0 行
+. . 导出了 "ZIHOA"."ACT_ID_USER"                           0 KB       0 行
+. . 导出了 "ZIHOA"."ACT_PROCDEF_INFO"                      0 KB       0 行
+. . 导出了 "ZIHOA"."ACT_RU_EVENT_SUBSCR"                   0 KB       0 行
+. . 导出了 "ZIHOA"."ACT_RU_JOB"                            0 KB       0 行
+. . 导出了 "ZIHOA"."GEN_TEMPLATE"                          0 KB       0 行
+. . 导出了 "ZIHOA"."IIM_NOTIFY"                            0 KB       0 行
+. . 导出了 "ZIHOA"."IIM_NOTIFY_RECORD"                     0 KB       0 行
+. . 导出了 "ZIHOA"."OA_LEAVE_ACCEPT"                       0 KB       0 行
+. . 导出了 "ZIHOA"."OA_NOTIFY_NOTICE"                      0 KB       0 行
+. . 导出了 "ZIHOA"."OA_WORK_ACCEPT"                        0 KB       0 行
+. . 导出了 "ZIHOA"."STAGE_MIGRLOG"                         0 KB       0 行
+. . 导出了 "ZIHOA"."SYS_MDICT"                             0 KB       0 行
+. . 导出了 "ZIHOA"."SYS_USER_FRIEND"                       0 KB       0 行
+. . 导出了 "ZIHOA"."TEST_DATA_CHILD"                       0 KB       0 行
+. . 导出了 "ZIHOA"."TEST_DATA_MAIN"                        0 KB       0 行
+已成功加载/卸载了主表 "ZIHOA"."SYS_EXPORT_SCHEMA_01" 
+******************************************************************************
+ZIHOA.SYS_EXPORT_SCHEMA_01 的转储文件集为:
+  E:\ORACLE12CSPACE\ADMIN\ORCL\DPDUMP\ZIHOA.DMP
+作业 "ZIHOA"."SYS_EXPORT_SCHEMA_01" 已于 星期六 3月 31 10:21:29 2018 elapsed 0 00:00:57 成功完成

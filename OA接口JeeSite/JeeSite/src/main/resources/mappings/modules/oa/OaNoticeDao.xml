@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.thinkgem.jeesite.modules.oa.dao.OaNoticeDao">
+    
+	<sql id="oaNoticeColumns">
+		a.ID AS "id",
+		a.TITLE AS "title",
+		a.CONTENT AS "content",
+		a.FILE_PATH AS "filePath",
+		a.RECEIVE_USER AS "receiveUser",
+		a.CREATE_BY AS "createBy.id",
+		a.CREATE_DATE AS "createDate",
+		a.DEL_FLAG AS "delFlag",
+		a.STATUS AS "status",
+		a.UPDATE_BY AS "updateBy.id",
+	 	a.UPDATE_DATE AS "updateDate",
+	    b.read_num,
+	    b.un_read_num
+	</sql>
+  
+	<sql id="oaNoticeJoins">
+ <!-- 查询已读和未读条数 -->
+		LEFT JOIN (
+            SELECT r.oa_notice_id, 
+                   sum(case when r.read_flag = '1' then 1 else 0 end) read_num,
+                   sum(case when r.read_flag != '1' then 1 else 0 end) un_read_num 
+            FROM oa_notice_record r GROUP BY r.oa_notice_id
+    	) b ON b.oa_notice_id = a.id    
+	</sql>
+    
+	<select id="get" resultType="OaNotice">
+		SELECT 
+			<include refid="oaNoticeColumns"/>
+		FROM oa_notice a
+		<include refid="oaNoticeJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="findList" resultType="OaNotice">
+		SELECT 
+			<include refid="oaNoticeColumns"/>
+		<if test="isSelf">,
+				r.read_flag
+			</if>
+		FROM oa_notice a
+		<include refid="oaNoticeJoins"/>
+		<!-- 我的通知 -->
+		<if test="isSelf">
+			JOIN oa_notice_record r ON r.oa_notice_id = a.id AND r.user_id = #{currentUser.id} 
+		</if>
+		WHERE a.del_flag = #{DEL_FLAG_NORMAL}
+		<if test="title != null and title != ''">
+			AND a.TITLE LIKE 
+					<if test="dbName == 'oracle'">'%'||#{title}||'%'</if>
+					<if test="dbName == 'mssql'">'%'+#{title}+'%'</if>
+					<if test="dbName == 'mysql'">CONCAT('%', #{title}, '%')</if>
+		</if>
+		<if test="status != null and status != ''">
+			AND a.STATUS = #{status}
+		</if>
+		<if test="isSelf">
+			AND a.STATUS = '1'
+		</if>
+		<if test="isSelf==false">
+			AND a.create_by=#{currentUser.id} 
+		</if>
+		ORDER BY a.update_date DESC
+	</select>
+	
+	<!-- 未读 -->
+	<select id="findNoRead" resultType="OaNotice">
+		SELECT 
+			<include refid="oaNoticeColumns"/>
+		<if test="isSelf">,
+				r.read_flag
+			</if>
+		FROM oa_notice a
+		<include refid="oaNoticeJoins"/>
+		<!-- 我的通知 -->
+		<if test="isSelf">
+			JOIN oa_notice_record r ON r.oa_notice_id = a.id AND r.user_id = #{currentUser.id} 
+			AND r.read_flag = '0'
+		</if>
+		WHERE a.del_flag = #{DEL_FLAG_NORMAL}
+		<if test="title != null and title != ''">
+			AND a.TITLE LIKE 
+					<if test="dbName == 'oracle'">'%'||#{title}||'%'</if>
+					<if test="dbName == 'mssql'">'%'+#{title}+'%'</if>
+					<if test="dbName == 'mysql'">CONCAT('%', #{title}, '%')</if>
+		</if>
+		<if test="status != null and status != ''">
+			AND a.STATUS = #{status}
+		</if>
+		<if test="isSelf">
+			AND a.STATUS = '1'
+		</if>
+		<if test="isSelf==false">
+			AND a.create_by=#{currentUser.id} 
+		</if>
+		ORDER BY a.update_date DESC
+	</select>
+	
+	<select id="findAllList" resultType="OaNotice">
+		SELECT 
+			<include refid="oaNoticeColumns"/>
+		FROM oa_notice a
+		<include refid="oaNoticeJoins"/>
+		WHERE a.del_flag = #{DEL_FLAG_NORMAL} 
+		ORDER BY a.update_date DESC
+	</select>
+ 
+ <select id="findCount" resultType="Long">
+		SELECT 
+			count(1)
+		FROM oa_notice a
+		<if test="isSelf">
+			JOIN oa_notice_record r ON r.oa_notice_id = a.id AND r.user_id = #{currentUser.id}
+		</if>
+		<if test="readFlag != null and readFlag != ''">
+			AND r.read_flag = #{readFlag}
+		</if>
+		WHERE a.del_flag = #{DEL_FLAG_NORMAL}
+		<if test="isSelf">
+			AND a.STATUS = '1'
+		</if>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO oa_notice(
+			id,
+			title,
+			content,
+			file_path,
+			receive_user,
+			create_by,
+			create_date,
+			del_flag,
+			update_by,
+			update_date,
+			status
+		) VALUES (
+			#{id},
+			#{title},
+			#{content},
+			#{filePath},
+			#{receiveUser},
+			#{createBy.id},
+			#{createDate},
+			#{delFlag},
+			#{updateBy.id},
+			#{updateDate},
+			#{status}
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE oa_notice SET 	
+			<if test="title != null and title !=''">title = #{title},</if>
+			<if test="content != null and content !=''">content = #{content},</if>
+			<if test="filePath != null and filePath !=''">FILE_PATH = #{filePath},</if>
+			<if test="receiveUser != null and receiveUser !=''">RECEIVE_USER = #{receiveUser},</if>
+			<if test="updateBy.id != null and updateBy.id !=''">UPDATE_BY = #{updateBy.id},</if>
+			<if test="updateDate != null and updateDate !=''">UPDATE_DATE = #{updateDate},</if>
+			<if test="status != null and status !=''">status = #{status}</if>
+		WHERE id = #{id}
+	</update>
+	
+	<update id="delete">
+		UPDATE oa_notice SET 
+			del_flag = #{DEL_FLAG_DELETE}
+		WHERE id = #{id}
+	</update>
+	
+</mapper>

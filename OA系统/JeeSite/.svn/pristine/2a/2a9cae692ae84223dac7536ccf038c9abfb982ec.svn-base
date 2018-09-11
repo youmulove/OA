@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.thinkgem.jeesite.modules.oa.dao.OaTravelRecordDao">
+    
+	<sql id="oaTravelRecordColumns">
+		a.id AS "id",
+		a.user_id AS "user.id",
+		a.name AS "name",
+		a.start_time AS "startTime",
+		a.end_time AS "endTime",
+		a.describe AS "describe",
+		u.name AS "user.name",
+		a.company_id AS "companyId",
+		c.name AS "user.company.name",
+		c.id AS "user.company.id",
+	    a.role_id AS "userRoleId",
+	    a.create_by AS "createBy.id",
+		a.create_date AS "applyTime",
+		a.update_by AS "updateBy.id",
+		a.update_date AS "updateDate",
+		a.remarks AS "remarks",
+		a.del_flag AS "delFlag"
+	</sql>
+	
+	<sql id="oaTravelRecordJoins">
+		LEFT JOIN sys_user u ON u.id = a.user_id
+		LEFT JOIN sys_office c ON c.id = a.company_id
+		LEFT JOIN sys_user_role r ON r.user_id = a.user_id
+	</sql>
+    
+	<select id="get" resultType="OaTravelRecord">
+		SELECT 
+			<include refid="oaTravelRecordColumns"/>
+		FROM oa_travel_record a
+		<include refid="oaTravelRecordJoins"/>
+		WHERE a.id = #{id}
+	</select>
+	
+	<select id="findList" resultType="OaTravelRecord">
+		SELECT 
+			<include refid="oaTravelRecordColumns"/>
+			
+		FROM oa_travel_record a
+		<include refid="oaTravelRecordJoins"/>
+		WHERE
+		 
+		<choose>
+		  <when test="currentUser.admin">
+		  1=1
+		  </when>
+		  <otherwise>
+	      a.company_id = #{companyId}
+	</otherwise>
+   </choose>
+  <if test="name != null and name != ''">
+			and	 a.name LIKE 
+					<if test="dbName == 'oracle'">'%'||#{name}||'%'</if>
+					<if test="dbName == 'mssql'">'%'+#{name}+'%'</if>
+					<if test="dbName == 'mysql'">concat('%',#{name},'%')</if>
+    </if>
+    <choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.create_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	<select id="findSomeOne" resultType="OaTravelRecord">
+		SELECT 
+			<include refid="oaTravelRecordColumns"/>
+			
+		FROM oa_travel_record a
+		<include refid="oaTravelRecordJoins"/>
+		WHERE
+		 <choose>
+		  <when test="currentUser.admin">
+		  1=1
+		  </when>
+		  <otherwise>
+	    1=1
+	</otherwise>
+   </choose>
+			<if test="name != null and name != ''">
+			and	 a.name LIKE 
+					<if test="dbName == 'oracle'">'%'||#{name}||'%'</if>
+					<if test="dbName == 'mssql'">'%'+#{name}+'%'</if>
+					<if test="dbName == 'mysql'">concat('%',#{name},'%')</if>
+    </if>	
+    <if test="user.id !=null and user.id != ''"	>
+         and  a.user_id=#{user.id} 
+   </if>	
+    <choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.create_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	<select id="findListByself" resultType="OaTravelRecord">
+		SELECT ID,USER_ID,NAME,START_TIME,END_TIME,DESCRIBE,CREATE_DATE FROM oa_travel_record 
+		<!-- 我的行程 --> 
+		<where>
+			USER_ID=#{currentUser.no}
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY CREATE_DATE DESC
+			</otherwise>
+		</choose>
+	</select>
+	<select id="findListOthers" resultType="OaTravelRecord">
+		SELECT ID,USER_ID,NAME,START_TIME,END_TIME,DESCRIBE,CREATE_DATE FROM oa_travel_record 
+		<!-- 其他人的行程 -->  
+		
+		<where>
+			USER_ID!=#{currentUser.no}
+		</where>
+		<choose>
+		  <when test="currentUser.admin">
+		  and 1=1
+		  </when>
+		  <otherwise>
+		  and  company_id = #{companyId}
+			</otherwise>
+		  </choose>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY CREATE_DATE DESC
+			</otherwise>
+		</choose>
+	</select>
+	<select id="findAllList" resultType="OaTravelRecord">
+		SELECT 
+			<include refid="oaTravelRecordColumns"/>
+		FROM oa_travel_record a
+		<include refid="oaTravelRecordJoins"/>
+		<where>
+			
+		</where>		
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.create_date DESC
+			</otherwise>
+		</choose>
+	</select>
+	
+	<insert id="insert">
+		INSERT INTO oa_travel_record(
+			id,
+			user_id,
+			name,
+			start_time,
+			end_time,
+			describe,
+			company_id,
+			create_by,
+			create_date,
+			update_by,
+			update_date,
+			remarks,
+			del_flag
+			
+		) VALUES (
+			#{id},
+			#{user.id},
+			#{name},
+			#{startTime},
+			#{endTime},
+			#{describe},
+			#{companyId},
+			#{createBy.id},
+			#{createDate},
+			#{updateBy.id},
+			#{updateDate},
+			#{remarks},
+			#{delFlag}
+		
+		)
+	</insert>
+	
+	<update id="update">
+		UPDATE oa_travel_record SET 	
+			user_id = #{user.id},
+			name = #{name},
+			start_time = #{startTime},
+			end_time = #{endTime},
+			describe = #{describe},
+			company_id = #{companyId},
+			update_by = #{updateBy.id},
+			update_date = #{updateDate},
+			remarks = #{remarks}
+		WHERE id = #{id}
+	</update>
+	
+	<update id="delete">
+		DELETE FROM oa_travel_record
+		WHERE id = #{id}
+	</update>
+	
+</mapper>
